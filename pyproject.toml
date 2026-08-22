@@ -1,0 +1,47 @@
+[project]
+name = "genai-personal-lab"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = [
+  # UI / config / utils
+  "streamlit==1.64.0",
+  "pydantic==2.13.5",
+  "pydantic-settings==2.15.0",
+  "pandas==3.0.5",
+
+  # Documents, data stores
+  "pymupdf==1.28.2",
+  "pymongo==4.18.1",
+  "neo4j==6.3.1",
+  "sqlalchemy==2.0.54",
+
+  # Local models (CPU)
+  "torch==2.14.0",
+  "sentence-transformers==6.0.1",
+
+  # LangChain / LangGraph
+  "langchain==1.4.1",
+  "langchain-core==1.6.3",
+  "langgraph==1.2.11",
+  "langchain-text-splitters==1.1.2",
+  "langchain-mongodb==0.12.0",
+  "langchain-google-genai==4.4.0",
+  "langchain-groq==1.1.3",
+  "langchain-openai==1.6.2",
+  "langchain-ollama==1.1.0",
+  "langchain-neo4j==0.10.0",
+
+  # Web search, evaluation, tracing
+  "ddgs==9.16.0",
+  "ragas==0.4.3",
+  "langfuse==4.15.4",
+]
+
+# CPU-only torch. PyPI's Linux torch wheels pull in several GB of NVIDIA CUDA packages.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

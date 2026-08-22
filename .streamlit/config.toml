@@ -1,0 +1,82 @@
+[theme]
+font = "Inter"
+headingFont = "Instrument Serif"
+codeFont = "JetBrains Mono"
+baseFontSize = 15
+baseRadius = "small"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[[theme.fontFaces]]
+family = "Instrument Serif"
+url = "app/static/fonts/InstrumentSerif-Regular.ttf"
+weight = 400
+style = "normal"
+
+[[theme.fontFaces]]
+family = "Instrument Serif"
+url = "app/static/fonts/InstrumentSerif-Italic.ttf"
+weight = 400
+style = "italic"
+
+[[theme.fontFaces]]
+family = "Inter"
+url = "app/static/fonts/Inter-Variable.ttf"
+weight = "100 900"
+style = "normal"
+
+[[theme.fontFaces]]
+family = "Inter"
+url = "app/static/fonts/Inter-Italic-Variable.ttf"
+weight = "100 900"
+style = "italic"
+
+[[theme.fontFaces]]
+family = "JetBrains Mono"
+url = "app/static/fonts/JetBrainsMono-Variable.ttf"
+weight = "100 900"
+style = "normal"
+
+[[theme.fontFaces]]
+family = "JetBrains Mono"
+url = "app/static/fonts/JetBrainsMono-Italic-Variable.ttf"
+weight = "100 900"
+style = "italic"
+
+[theme.light]
+primaryColor = "#00806B"
+backgroundColor = "#FAF8F3"
+secondaryBackgroundColor = "#F1ECE2"
+textColor = "#1B1A17"
+linkColor = "#00705E"
+borderColor = "#DCD5C7"
+orangeColor = "#8A5A00"
+redColor = "#A32F2A"
+chartCategoricalColors = ["#00806B", "#C2571B", "#2F5FD0", "#A77A00", "#B03E8C"]
+chartSequentialColors = ["#68B9A8", "#53A594", "#3E9180", "#277D6D", "#066A5B", "#005649", "#004238", "#003028", "#001E18", "#000E0A"]
+
+[theme.dark]
+primaryColor = "#2FB39A"
+backgroundColor = "#191713"
+secondaryBackgroundColor = "#221F1A"
+textColor = "#EFEAE0"
+linkColor = "#2FB39A"
+borderColor = "#3A352D"
+orangeColor = "#E0A94A"
+redColor = "#E4736B"
+chartCategoricalColors = ["#1FA58E", "#D9773A", "#5C82D8", "#B58A22", "#C568A8"]
+chartSequentialColors = ["#005448", "#026959", "#257C6C", "#3C8F7F", "#51A392", "#66B8A6", "#7BCDBA", "#90E2CF", "#A5F8E4", "#ECFFFA"]
+
+[theme.dark.sidebar]
+backgroundColor = "#141210"
+
+[server]
+enableStaticServing = true
+# App code isn't bind-mounted into the container (only ./data and the HF
+# cache are), so hot-reload-on-save can never do anything here -- a code
+# change always needs a rebuild regardless. The watcher's module-path scan
+# is also what floods the logs: transformers' lazy __init__.py throws on
+# every vision-model submodule Streamlit's watcher touches while walking
+# sys.modules, which is harmless (we only use its text embedding model) but
+# very noisy. Disabling it removes both, at no functional cost in this setup.
+fileWatcherType = "none"
