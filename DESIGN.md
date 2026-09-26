@@ -166,6 +166,8 @@ The expander is keyed on the current page (`key=f"nav_demos_{current.title}"`), 
 
    Both tabs render from page load. `Trace` shows a placeholder until a run has happened.
 
+   `How it works` opens with a collapsed `Explore the flow` expander above the README. It holds the demo's interactive archify diagram, `st.iframe(Path(__file__).parent / "flow.html", height=540)`. Collapsed, it doesn't push the prose down on arrival. It opens in the reader's own light or dark setting and has its own theme toggle. At 540 px the diagram fills the frame at desktop widths with no inner scrollbar. See *Flow diagrams* in `CLAUDE.md` for how `flow.html` is made.
+
    READMEs carry two mermaid flow diagrams (ingestion, then retrieval and generation). `st.markdown` renders ` ```mermaid ` fences natively, so the README stays one plain file that renders in the app and on GitHub — no splitting, no `st.mermaid_chart` call, no custom component. Diagrams are unstyled: no `classDef`, no colour literals, so they inherit the app theme in both modes. The one exception is `core.ui.graph_diagram`, which has to override LangGraph's own hardcoded classDefs — see the comment there.
 7. **Metrics row** — latency, tokens, LLM calls, passages retrieved.
 
@@ -182,4 +184,4 @@ Sidebar: document picker + upload, demo settings, "Clear my data".
 
 ## House rules
 
-No emoji (Material Symbols if an icon is genuinely needed). Sentence case. Buttons are verbs naming their object. Active voice, plain language, the vocabulary above. No custom CSS, no third-party components needing a Node build, no browser storage.
+No emoji (Material Symbols if an icon is genuinely needed). Sentence case. Buttons are verbs naming their object. Active voice, plain language, the vocabulary above. No custom CSS, no third-party components needing a Node build, no browser storage. The archify flow diagrams don't break this rule: they're rendered on the host ahead of time, and the app only embeds the finished HTML.

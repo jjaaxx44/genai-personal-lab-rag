@@ -118,7 +118,7 @@ Note that application code is **not** bind-mounted into the container — only `
 │   ├── Home.py              # symptom grid + full catalogue
 │   ├── core/                # config, LLM, embeddings, PDF, Mongo, Neo4j, tracing, shared UI
 │   ├── static/fonts/        # the three typefaces the theme loads
-│   └── demos/rag/<name>/    # pipeline.py, page.py, README.md — one folder per technique
+│   └── demos/rag/<name>/    # pipeline.py, page.py, README.md, flow.json + flow.html — one folder per technique
 ├── samples/                 # sample PDFs + the Chinook SQLite database
 ├── scripts/                 # one-off helpers
 ├── .streamlit/config.toml   # theme tokens and server settings
@@ -167,3 +167,5 @@ The code in this repository is MIT — see [LICENSE](LICENSE).
 > This describes the licence; it isn't legal advice. Check with your own counsel before relying on it.
 
 Bundled assets carry their own licences: the three typefaces in [app/static/fonts/](app/static/fonts/) are SIL Open Font License 1.1 (see [the notice there](app/static/fonts/LICENSES.md)), and `samples/chinook.db` is the [Chinook sample database](https://github.com/lerocha/chinook-database), MIT.
+
+Each demo's `flow.html` is rendered by [Archify](https://github.com/tt-a1i/archify) and embeds its viewer code, MIT (© 2026 tt-a1i, © 2025 Cocoon AI), plus the JetBrains Mono typeface, SIL Open Font License 1.1.
