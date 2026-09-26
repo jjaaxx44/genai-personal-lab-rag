@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Naive RAG",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      440
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "question path"
+        },
+        "default": {
+          "label": "ingestion (once per document)"
+        },
+        "dashed": {
+          "label": "index lookup"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Input"
+    },
+    {
+      "label": "Prepare"
+    },
+    {
+      "label": "Embed"
+    },
+    {
+      "label": "Index + search"
+    },
+    {
+      "label": "Generate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 0,
+      "tag": "ingest"
+    },
+    {
+      "id": "split",
+      "type": "backend",
+      "label": "Extract + split",
+      "sublabel": "overlapping passages",
+      "stage": 1,
+      "row": 0
+    },
+    {
+      "id": "embedDocs",
+      "type": "backend",
+      "label": "Embed passages",
+      "sublabel": "bge-small-en-v1.5",
+      "stage": 2,
+      "row": 0
+    },
+    {
+      "id": "index",
+      "type": "database",
+      "label": "Vector index",
+      "sublabel": "rag_naive",
+      "stage": 3,
+      "row": 0,
+      "tag": "MongoDB"
+    },
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "stage": 0,
+      "row": 1,
+      "tag": "query"
+    },
+    {
+      "id": "embedQuestion",
+      "type": "backend",
+      "label": "Embed question",
+      "sublabel": "same model",
+      "stage": 2,
+      "row": 1
+    },
+    {
+      "id": "search",
+      "type": "backend",
+      "label": "Similarity search",
+      "sublabel": "$vectorSearch",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Chat model",
+      "sublabel": "one call",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "answer",
+      "type": "frontend",
+      "label": "Answer",
+      "sublabel": "with page citations",
+      "stage": 4,
+      "row": 0
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-text",
+      "from": "pdf",
+      "to": "split",
+      "label": "text layer"
+    },
+    {
+      "id": "split-passages",
+      "from": "split",
+      "to": "embedDocs",
+      "label": "passages"
+    },
+    {
+      "id": "embed-store",
+      "from": "embedDocs",
+      "to": "index",
+      "label": "vectors + page"
+    },
+    {
+      "id": "question-embed",
+      "from": "question",
+      "to": "embedQuestion",
+      "label": "question text",
+      "variant": "emphasis"
+    },
+    {
+      "id": "embed-search",
+      "from": "embedQuestion",
+      "to": "search",
+      "label": "query vector",
+      "variant": "emphasis"
+    },
+    {
+      "id": "index-search",
+      "from": "index",
+      "to": "search",
+      "label": "nearest by cosine",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "search-llm",
+      "from": "search",
+      "to": "llm",
+      "label": "top-k passages",
+      "variant": "emphasis"
+    },
+    {
+      "id": "llm-answer",
+      "from": "llm",
+      "to": "answer",
+      "label": "grounded reply",
+      "variant": "emphasis"
+    }
+  ]
+}

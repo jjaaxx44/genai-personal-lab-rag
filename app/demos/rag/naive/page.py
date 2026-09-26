@@ -106,6 +106,9 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
+    # Rendered by the archify skill from flow.json; the README keeps its mermaid for GitHub.
+    with st.expander("Explore the flow"):
+        st.iframe(Path(__file__).parent / "flow.html", height=540)
     readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     if result is not None:
