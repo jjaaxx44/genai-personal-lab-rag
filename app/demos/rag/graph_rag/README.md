@@ -2,24 +2,16 @@
 
 ## What it is
 
-Vector retrieval treats a document as a bag of independent passages. That works when an answer sits inside one passage, and fails when the answer *is a relationship* — something the document implies across several places but never states in one.
-
-*"Who did this researcher collaborate with?"* The document may mention a joint paper in one section, a shared laboratory in another, and a co-authored patent in a third. No passage contains the list. Retrieval returns the three best-matching paragraphs, which may be three descriptions of the same collaboration, and the model answers from whichever fragment it got.
-
-GraphRAG changes what gets stored. At ingest, a language model reads each passage and extracts **entities** (a person, an organisation, a place, a component) and **relationships** between them (*worked with*, *founded*, *depends on*). Those become nodes and edges in a knowledge graph, accumulated across the whole document so that facts stated far apart end up as edges on the same node. The passages are kept and embedded too, with links recording which passage mentioned which entity — the graph is an index over the text, not a replacement for it.
-
-Retrieval then works in two moves. Vector search finds the passages that best match the question, exactly as before. Then the graph is **traversed** from the entities those passages mention, pulling in neighbouring entities and their relationships. The context handed to the model is the retrieved text *plus* a local map of how the things in it connect. Facts that were never close together in the document arrive together, because the graph put them on the same node.
-
-The trade is stark. Extraction costs a model call per passage, making ingest far more expensive than embedding alone, and the resulting graph is only as good as that extraction. In exchange, relationship questions become answerable and the answer's reasoning is inspectable as a path through named entities rather than a similarity score.
+GraphRAG builds a knowledge graph from the document: at ingest, a model pulls out **entities** (people, companies, parts) and the **relationships** between them. At question time, vector search finds matching passages, then the graph is followed from the entities in those passages to their neighbours. This helps with questions about connections ("who worked with whom?") whose answer is spread across the document and never stated in one passage.
 
 ## Ingestion flow
 
 ```mermaid
 flowchart TD
   A["Document"] --> B["Split into passages"]
-  B --> C["Model extracts entities<br/>and relationships<br/>from each passage"]
+  B --> C["Model extracts entities<br/>and relationships<br/>per passage"]
   B --> D["Embed each passage"]
-  C --> E["Merge into one graph:<br/>same entity named twice<br/>becomes one node"]
+  C --> E["Merge into one graph:<br/>same entity becomes<br/>one node"]
   E --> F[("Knowledge graph:<br/>entities + relationships")]
   D --> G[("Passage nodes,<br/>vector-indexed")]
   G -.->|"mentions"| F
@@ -29,12 +21,12 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  Q["Question"] --> V["Vector search<br/>for matching passages"]
+  Q["Question"] --> V["Vector search<br/>for passages"]
   G1[("Passage nodes")] --> V
-  V --> E["Find entities those<br/>passages mention"]
-  E --> T["Traverse the graph:<br/>pull in neighbours<br/>and their relationships"]
+  V --> E["Entities those<br/>passages mention"]
+  E --> T["Traverse the graph<br/>to neighbours"]
   G2[("Knowledge graph")] --> T
-  T --> C["Context = passage text<br/>+ local graph neighbourhood"]
+  T --> C["Context = passages<br/>+ nearby graph"]
   V --> C
   C --> L["Language model"]
   L --> A["Answer"]
@@ -42,34 +34,32 @@ flowchart LR
 
 ## Strengths
 
-- **Relationship questions become answerable.** Connections scattered across a document are collected on one node and arrive together.
-- **It beats the locality assumption.** Vector search can only return text that resembles the question; graph traversal reaches facts that resemble nothing in it but are linked to something that does.
-- **Reasoning is inspectable as a path.** "These entities, connected this way" is a far better explanation than a similarity score, and it is checkable by a human.
-- **Entity mentions get consolidated.** The same subject discussed under different phrasings in different sections converges on one node.
-- **The graph is reusable.** Once built it supports browsing, summarisation and analytics, not just question answering.
-- **Text is still there.** Because passages are kept and linked, this degrades to ordinary vector RAG rather than failing when the graph doesn't help.
+- **Answers relationship questions.** Facts scattered across the document meet on the same entity node.
+- **Reaches beyond similar text.** Traversal finds facts that don't resemble the question but are linked to ones that do.
+- **Explainable.** The answer rests on a visible path through named entities, not just a similarity score.
+- **Falls back gracefully.** Passages are kept, so it still works like normal vector RAG when the graph doesn't help.
 
 ## Limitations
 
-- **Ingest is expensive and slow** — one model call per passage, against zero for embedding-only pipelines — which is why extraction is usually capped and run concurrently.
-- **Extraction quality sets the ceiling.** A cheap model misses relationships a strong one would catch, and everything downstream inherits those omissions silently.
-- **Entity resolution is the hard unsolved part.** "Marie Curie", "Curie" and "M. Curie" become three nodes unless something merges them, fragmenting exactly the connections the technique exists to find.
-- **Traversal depth is a fixed guess.** One hop misses two-hop relationships; two hops pull in enough of the graph to drown the real signal.
-- **No schema means no consistency.** Accepting whatever relationship types the model invents makes the graph easy to build and inconsistent to query — the same fact may be *works at*, *employed by* and *member of* in three passages. KAG constrains this deliberately.
-- **Nothing is normalised or verified.** Contradictions across passages become contradictory edges, with no confidence, no provenance weighting and no resolution.
-- **Re-extraction is the only way to improve it.** A better model or prompt means paying the full ingest cost again.
-- **Graph storage is another system** to run, secure and keep isolated per tenant.
+- **Expensive ingest.** One model call per passage, versus none for embedding-only RAG; improving it means re-extracting everything.
+- **Extraction sets the ceiling.** Relationships the model misses are silently gone.
+- **Duplicate entities.** "Marie Curie" and "M. Curie" become separate nodes unless merged, splitting the connections you wanted.
+- **Traversal depth is a guess.** One hop misses things; two hops can flood the context with noise.
+- **Inconsistent, unverified graph.** Without a schema the same fact gets different relationship names, and contradictions stay as conflicting edges. KAG adds a schema for this.
 
 ## Where to use it
 
-- Entity-and-relationship shaped material: biographies, organisational records, case files, incident reports, histories, technical specifications describing components and their dependencies.
-- Questions that are explicitly about connection — who with whom, what depends on what, how A relates to B.
-- Corpora where the same entities recur across many documents and the value is in cross-document links no single document states.
-- Investigative and analytical work, where an auditable path through named entities matters as much as the answer.
-- Not for straightforward factual lookup, where the ingest cost buys nothing a vector index wouldn't have given you.
+- Material built around entities: biographies, org records, case files, specs with component dependencies.
+- Questions about connections: who with whom, what depends on what.
+- Investigations where an auditable path matters as much as the answer.
+- Not for simple fact lookup, where the ingest cost buys nothing.
 
 ## In this demo
 
-Passages go through `langchain_neo4j.LLMGraphTransformer`, which asks the fast chat model to pull entities and relationships, with up to `GRAPH_RAG_MAX_CHUNKS` passages extracted `GRAPH_RAG_EXTRACT_CONCURRENCY` at a time (extraction is the slow, costly stage). Every passage is also embedded with `bge-small-en-v1.5` and stored as a `Document` node in Neo4j with a vector index, linked to its entities by `MENTIONS` relationships (`include_source=True`). Asking runs a vector search for top-k passage nodes, a Cypher query walking their `MENTIONS` edges to the entities those passages discuss and one hop further to neighbours, then one chat-model call over the passage text plus that neighbourhood. Passages beyond the cap remain embedded and retrievable, just without graph expansion. The page shows the whole extracted graph and, after a question, the specific subgraph that fed the answer with the mentioned entities highlighted.
-
-Two shared-infrastructure caveats. Neo4j AuraDB Free pauses after inactivity — both ingest and ask show a clear message rather than crashing — and entity node creation goes through `apoc.merge.node`, so a self-hosted Neo4j without the APOC plugin fails ingest with a caught error. GraphRAG and KAG share one Aura database and isolate only by `doc_id` and `demo` properties, not by name: two documents both mentioning the same `Person` merge into one physical node, and because `apoc.merge.node` sets properties only on creation, whichever ingest made it first keeps its tags permanently. A later demo's ingest cannot retag it, and "Clear my data" removes only nodes currently tagged with this demo and doc, so an orphaned node can survive. Fine for exploring one document at a time; not real multi-tenant isolation.
+- Extraction: `langchain_neo4j.LLMGraphTransformer` with the fast chat model. Up to `GRAPH_RAG_MAX_CHUNKS` passages are extracted, `GRAPH_RAG_EXTRACT_CONCURRENCY` at a time. Passages past the cap are still embedded and retrievable, just without graph expansion.
+- Every passage is embedded with `bge-small-en-v1.5` and stored as a `Document` node in Neo4j with a vector index, linked to its entities via `MENTIONS` (`include_source=True`).
+- Ask: vector search for top-k passage nodes → Cypher walks `MENTIONS` to their entities and one hop further to neighbours → one chat-model call over passages plus that neighbourhood.
+- The page shows the whole extracted graph and, after a question, the subgraph that fed the answer with mentioned entities highlighted.
+- Neo4j AuraDB Free pauses when idle; ingest and ask show a clear message instead of crashing.
+- Entity nodes are created with `apoc.merge.node`, so a self-hosted Neo4j without APOC fails ingest (with a caught error).
+- GraphRAG and KAG share one Aura database, isolated only by `doc_id` and `demo` properties. Two documents mentioning the same `Person` merge into one node, and since `apoc.merge.node` sets properties only on creation, the first ingest's tags stick. "Clear my data" deletes only nodes tagged with this demo and doc, so orphaned nodes can survive. Fine for one document at a time; not real multi-tenant isolation.

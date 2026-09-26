@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 
 from core.config import get_settings
-from core.ui import evidence_view, metrics_row, pipeline_ribbon, upload_widget
+from core.ui import evidence_view, metrics_row, pipeline_ribbon, readme_view, upload_widget
 from demos.rag.vectorless.pipeline import ask, clear_doc, has_tree, ingest
 
 DEMO = "vectorless"
@@ -105,7 +105,7 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
-    st.markdown((Path(__file__).parent / "README.md").read_text())
+    readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     if result is not None:
         for step in result.steps:

@@ -153,3 +153,14 @@ def clear_data_button(demo_key: str, collection: Collection, doc_id: str | None)
         st.session_state[f"{demo_key}_upload_gen"] = st.session_state.get(f"{demo_key}_upload_gen", 0) + 1
         return True
     return False
+
+
+def readme_view(path) -> None:
+    """Render a demo README; its closing 'In this demo' section sits in a collapsed expander."""
+    text = path.read_text()
+    marker = "\n## In this demo\n"
+    body, _, details = text.partition(marker)
+    st.markdown(body)
+    if details:
+        with st.expander("In this demo"):
+            st.markdown(details)

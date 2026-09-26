@@ -5,7 +5,7 @@ import streamlit as st
 
 from core.config import get_settings
 from core.graph_db import GraphUnavailable, clear_graph_doc, get_graph
-from core.ui import graph_triples_dot, pipeline_ribbon, upload_widget
+from core.ui import graph_triples_dot, pipeline_ribbon, readme_view, upload_widget
 from demos.rag.kag.pipeline import DEMO_TAG, ask, default_schema_json, graph_summary, ingest, parse_schema
 
 DEMO = "kag"
@@ -188,7 +188,7 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
-    st.markdown((Path(__file__).parent / "README.md").read_text())
+    readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     ingest_stats = st.session_state.get(f"{DEMO}_ingest_stats")
     if ingest_stats is not None and ingest_stats["doc_id"] == doc_id:

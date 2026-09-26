@@ -2,104 +2,86 @@
 
 ## What it is
 
-Chunking is the decision nobody makes deliberately and everybody lives with: before a document can be retrieved from, it has to be cut into pieces, and where those cuts land determines what can ever be found.
-
-The tension is simple. Cut too small and a passage no longer carries enough context to answer anything — the sentence that names the subject ends up in a different piece from the sentence that states the fact. Cut too large and every passage matches everything vaguely and nothing precisely, and the prompt fills up with text that is mostly irrelevant. Every strategy below is a different answer to "where should the boundary go".
-
-The first three below are structural — they look at the shape of the text. Only the last looks at what the text means, and it pays for that with an embedding pass at ingest time.
+Before a document can be searched it has to be cut into pieces (chunks), and where the cuts land decides what can be found. Chunks that are too small lose context; chunks that are too large match everything vaguely and fill the prompt with noise. Each strategy below is a different answer to where the boundary should go.
 
 ### Fixed-size
 
-Cuts at a character count, respecting only a coarse separator like a blank line. It is the cheapest and the most likely to cut mid-idea.
+Cuts at a character count. Cheapest, and the most likely to cut mid-idea.
 
 ```mermaid
 flowchart LR
-    A[Document] --> B[Extract Text]
-    B --> C[Define Chunk Size]
-    C --> D[Split Text]
-
-    D --> E[Chunk 1]
-    D --> F[Chunk 2]
-    D --> G[Chunk 3]
-    D --> H[Chunk N]
-
-    E --> I[Generate Embeddings]
-    F --> I
-    G --> I
-    H --> I
-
-    I --> J[Vector Database]
+  A["Document"] --> B["Extract text"]
+  B --> C["Set chunk size"]
+  C --> D["Split text"]
+  D --> E["Chunk 1"]
+  D --> F["Chunk 2"]
+  D --> G["Chunk 3"]
+  D --> H["Chunk N"]
+  E --> I["Embed"]
+  F --> I
+  G --> I
+  H --> I
+  I --> J[("Vector database")]
 ```
 
 ### Recursive
 
-Tries a ladder of separators — paragraph, then sentence, then word, then character — and uses the largest one that keeps the piece under the target size. It respects the document's natural structure where it can and falls back gracefully where it can't.
+Tries paragraph, then sentence, then word, then character breaks, using the largest that keeps the chunk under the target size.
 
 ```mermaid
 flowchart LR
-    A[Document] --> B[Split by Paragraph]
-    B --> C{Within Chunk Size?}
-
-    C -->|Yes| D[Keep Chunk]
-    C -->|No| E[Split by Sentence]
-
-    E --> F{Within Chunk Size?}
-    F -->|Yes| D
-    F -->|No| G[Split by Word]
-
-    G --> H{Within Chunk Size?}
-    H -->|Yes| D
-    H -->|No| I[Split by Character]
-
-    I --> D
-    D --> J[Final Chunks]
+  A["Document"] --> B["Split by paragraph"]
+  B --> C{"Fits?"}
+  C -->|Yes| D["Keep chunk"]
+  C -->|No| E["Split by sentence"]
+  E --> F{"Fits?"}
+  F -->|Yes| D
+  F -->|No| G["Split by word"]
+  G --> H{"Fits?"}
+  H -->|Yes| D
+  H -->|No| I["Split by character"]
+  I --> D
+  D --> J["Final chunks"]
 ```
 
 ### Sliding window
 
-Recursive splitting with a large overlap, so consecutive passages share text. A fact cut by one boundary survives whole inside its neighbour. You buy that insurance with storage and redundancy.
+Recursive splitting with a large overlap, so a fact cut by one boundary survives whole in the next chunk.
 
 ```mermaid
 flowchart LR
-    A[Document] --> B[Extract Text]
-    B --> C[Define Window Size]
-    C --> D[Define Overlap]
-
-    D --> E[Chunk 1<br/>Tokens 1-500]
-    E --> F[Chunk 2<br/>Tokens 401-900]
-    F --> G[Chunk 3<br/>Tokens 801-1300]
-    G --> H[Chunk 4<br/>Tokens 1201-1700]
-
-    E --> I[Generate Embeddings]
-    F --> I
-    G --> I
-    H --> I
-
-    I --> J[Vector Database]
+  A["Document"] --> B["Extract text"]
+  B --> C["Set window size"]
+  C --> D["Set overlap"]
+  D --> E["Chunk 1<br/>tokens 1-500"]
+  E --> F["Chunk 2<br/>tokens 401-900"]
+  F --> G["Chunk 3<br/>tokens 801-1300"]
+  G --> H["Chunk 4<br/>tokens 1201-1700"]
+  E --> I["Embed"]
+  F --> I
+  G --> I
+  H --> I
+  I --> J[("Vector database")]
 ```
 
 ### Semantic
 
-Ignores size targets and cuts where the *meaning* changes: embed each sentence, measure how much each neighbouring pair differs, and start a new passage wherever the drop is unusually large. Boundaries land on topic shifts rather than on character counts.
+Embeds each sentence and starts a new chunk where neighbouring sentences differ sharply in meaning, so cuts land on topic shifts.
 
 ```mermaid
 flowchart LR
-    A[Document] --> B[Extract Sentences]
-    B --> C[Generate Sentence Embeddings]
-    C --> D[Compare Adjacent Sentence Similarity]
-
-    D --> E{Semantic Change?}
-
-    E -->|No| F[Keep Sentences in Same Chunk]
-    F --> D
-
-    E -->|Yes| G[Create Chunk Boundary]
-    G --> H[Start New Semantic Chunk]
-    H --> D
-
-    G --> I[Final Semantic Chunks]
-    I --> J[Generate Chunk Embeddings]
-    J --> K[Vector Database]
+  A["Document"] --> B["Extract sentences"]
+  B --> C["Embed each sentence"]
+  C --> D["Compare neighbour<br/>similarity"]
+  D --> E{"Meaning shift?"}
+  E -->|No| F["Keep in same chunk"]
+  F --> D
+  E -->|Yes| G["Cut here"]
+  G --> H["Start new chunk"]
+  H --> D
+  G --> I["Final chunks"]
+  I --> J["Embed chunks"]
+  J --> K[("Vector database")]
 ```
 
 ## Ingestion flow
@@ -110,8 +92,8 @@ flowchart TD
   B --> F["Fixed-size:<br/>cut at a character count"]
   B --> R["Recursive:<br/>paragraph to sentence<br/>to word to character"]
   B --> W["Sliding window:<br/>recursive + large overlap"]
-  B --> S["Semantic:<br/>embed sentences, cut<br/>where meaning shifts"]
-  F --> E["Embed every passage"]
+  B --> S["Semantic:<br/>cut where meaning shifts"]
+  F --> E["Embed every chunk"]
   R --> E
   W --> E
   S --> E
@@ -125,36 +107,38 @@ flowchart LR
   Q["Question"] --> E["Embed the question"]
   E --> S["Search once per strategy,<br/>filtered by its tag"]
   D[("Index")] --> S
-  S --> P["Four passage sets"]
+  S --> P["Four chunk sets"]
   P --> L["Answer each set<br/>separately"]
-  L --> C["Compare answers,<br/>evidence and cost<br/>side by side"]
+  L --> C["Compare answers,<br/>evidence and cost"]
 ```
 
 ## Strengths
 
-- **It isolates one variable.** Same document, same embedding model, same retrieval, same question — only the boundaries move, so any difference in the answers is attributable to the split.
-- **Recursive splitting is a strong default.** It respects structure, stays near a predictable size, and costs nothing extra at ingest.
-- **Overlap is a cheap fix for a common failure.** If facts keep getting cut in half, widening the window fixes it without any new machinery.
-- **Semantic boundaries match how documents are actually organised** — by topic, not by length — and pay off most on long, topically varied pages.
+- **Recursive is a strong default.** It follows the text's structure, keeps sizes predictable, and costs nothing extra.
+- **Overlap is a cheap fix.** If facts keep getting cut in half, a wider overlap fixes it with no new machinery.
+- **Semantic cuts follow topics.** Documents are organised by topic, not length, and this pays off on long, varied pages.
+- **Easy to compare.** Only the boundaries change, so differences in answers come from the split alone.
 
 ## Limitations
 
-- **Fixed-size cuts through meaning by design.** It cannot see a sentence or a table, only a length, and an oversized piece is left oversized rather than re-split.
-- **Overlap multiplies the corpus.** A large sliding window can double or triple the passage count, and with it the embedding cost, the storage and the redundancy in every retrieved set.
-- **Semantic chunking costs an embedding pass per sentence** at ingest, and produces unpredictable sizes — a very short passage can sit next to a very long one when topics shift sharply.
-- **Sentence detection is harder than it looks.** Splitting on punctuation mis-fires on abbreviations, decimals and citations, and every semantic splitter inherits those mistakes.
-- **There is no universally best setting.** The right size depends on the document, the embedding model's context window and the questions being asked, which is why this is a comparison page rather than a recommendation.
-- **Boundaries are permanent.** Changing the strategy means re-embedding and re-indexing the whole corpus.
+- **Fixed-size ignores meaning.** It sees only length, so it cuts through sentences and tables.
+- **Overlap inflates the corpus.** More chunks means more embedding cost, storage and duplicate text in results.
+- **Semantic is costly and uneven.** It embeds every sentence at ingest and gives unpredictable chunk sizes.
+- **No universal best setting.** The right choice depends on the document, the embedding model and the questions.
+- **Boundaries are permanent.** Changing strategy means re-embedding and re-indexing everything.
 
 ## Where to use it
 
-- Before committing to a strategy for a new document type — run all four once and look at how differently they carve up the same pages.
-- When a retrieval pipeline keeps missing an answer you can see in the document: it is often a chunking problem wearing a retrieval problem's clothes.
-- Deciding whether semantic chunking's ingest cost is justified, which depends almost entirely on whether the document has real topic structure inside a page.
-- Documents with a strong native structure — headed sections, clauses, catalogue entries — where a structural splitter can be pointed at the real boundaries.
+- Choosing a strategy for a new document type.
+- When retrieval misses an answer you can see in the document; it is often a chunking problem.
+- Deciding whether semantic chunking's ingest cost is worth it.
+- Documents with clear structure (sections, clauses, entries) a splitter can follow.
 
 ## In this demo
 
-All four splitters write into one MongoDB collection (`rag_chunking`) tagged with a `strategy` field and retrieved with `$vectorSearch` filtered on that tag. Fixed-size, recursive and sliding window use `langchain-text-splitters` (`CharacterTextSplitter`, `RecursiveCharacterTextSplitter`); semantic is hand-written, embedding sentences with `bge-small-en-v1.5` and cutting on the similarity drop between neighbours, with sentences found by a plain `(?<=[.!?])\s+` regex. Splitting runs per page so page citations work. One question runs the full pipeline four times — four separate chat-model calls, sequentially — so each column has its own answer, latency and token count; a strategy whose call fails shows as unavailable while the others complete.
-
-`chunk` is used instead of `passage` on this page only, because here the chunk is the subject.
+- One MongoDB collection, `rag_chunking`, with a `strategy` field; retrieval is `$vectorSearch` filtered on it.
+- Fixed-size, recursive and sliding window use `langchain-text-splitters` (`CharacterTextSplitter`, `RecursiveCharacterTextSplitter`). Fixed-size splits only on a coarse separator (blank line), so an oversized piece stays oversized.
+- Semantic is hand-written: sentences found by a plain `(?<=[.!?])\s+` regex (which mis-fires on abbreviations and decimals), embedded with `bge-small-en-v1.5`, cut on the similarity drop between neighbours.
+- Splitting runs per page so page citations work.
+- Each question runs the full pipeline four times: four sequential chat-model calls, each column with its own answer, latency and tokens. A strategy whose call fails shows as unavailable; the others still complete.
+- This page says "chunk" instead of "passage", because here the chunk is the subject.

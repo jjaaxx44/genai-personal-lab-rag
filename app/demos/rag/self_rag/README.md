@@ -2,21 +2,7 @@
 
 ## What it is
 
-CRAG checks the sources. Self-RAG checks the answer.
-
-An ordinary pipeline produces a draft and ships it. Nothing asks whether the claims in that draft are actually backed by the retrieved passages, or whether the draft addresses what was asked. Self-RAG makes both of those explicit steps and adds a third question at the front that most pipelines never ask: **does this even need retrieval?**
-
-So the technique is really three judgements wrapped around generation:
-
-**Should I retrieve?** Not every input needs the document. Greetings, follow-ups already answered, and general knowledge don't, and retrieving anyway wastes a search and stuffs the prompt with irrelevant passages that can actively mislead. A routing decision up front skips retrieval for those.
-
-**Is each retrieved passage relevant?** Retrieval returns a fixed number of results whether or not that many are useful. Filtering them individually means the prompt gets only what survived, rather than the top-k by construction.
-
-**Is the draft supported, and is it useful?** These are separate failures and need separate checks. *Supported* asks whether every claim traces back to the context — this is the hallucination check, and it can fail even when the answer is correct, because an answer the model knew from training but the context does not contain is still unsupported. *Useful* asks whether the draft actually addresses the question — an answer can be perfectly grounded and still not respond to what was asked.
-
-When either check fails, the critique becomes feedback and generation runs again with it. That retry loop is what makes this self-correcting rather than merely self-reporting, and it needs a hard budget: a model that cannot fix a problem will not fix it on the fifth attempt either, so after a bounded number of tries the last draft is returned and labelled a best effort rather than a verified answer.
-
-The honest caveat is that the critic is the same kind of model as the generator, with the same blind spots. Grading your own work catches sloppiness reliably and catches confident misunderstanding much less reliably.
+Self-RAG has the model check its own work. First it decides whether a question needs retrieval at all. Then it throws away retrieved passages that aren't relevant, and grades its draft answer on two things: is every claim backed by the passages (*supported*), and does it actually answer the question (*useful*)? If either check fails, it rewrites the draft using that feedback, for a limited number of tries.
 
 ## Ingestion flow
 
@@ -26,54 +12,58 @@ flowchart LR
   B --> C["Split into passages"]
   C --> D["Embed each passage"]
   D --> E[("Vector index")]
-  N["No special ingestion:<br/>every check happens<br/>at question time"] -.-> E
+  N["Nothing special here:<br/>all checks happen<br/>at question time"] -.-> E
 ```
 
 ## Retrieval and generation flow
 
 ```mermaid
 flowchart TD
-  Q["Question"] --> R{"Does this need<br/>retrieval?"}
+  Q["Question"] --> R{"Needs<br/>retrieval?"}
   R -->|"no"| GEN["Generate"]
   R -->|"yes"| RET["Retrieve top-k passages"]
   I[("Vector index")] --> RET
-  RET --> F["Grade each passage;<br/>keep only the relevant"]
+  RET --> F["Grade each passage;<br/>keep the relevant ones"]
   F --> GEN
-  GEN --> C["Critique the draft:<br/>supported by context?<br/>useful for the question?"]
+  GEN --> C["Critique the draft:<br/>supported? useful?"]
   C --> D{"Both pass?"}
   D -->|"yes"| A["Answer"]
-  D -->|"no, budget left"| FB["Fold feedback<br/>into the prompt"]
+  D -->|"no, tries left"| FB["Add feedback<br/>to the prompt"]
   FB --> GEN
-  D -->|"no, budget spent"| BE["Return last draft,<br/>labelled best effort"]
+  D -->|"no, out of tries"| BE["Return last draft,<br/>marked best effort"]
 ```
 
 ## Strengths
 
-- **It targets hallucination directly.** The supported check exists specifically to catch the model asserting what the context does not back, which is the failure users are least equipped to notice.
-- **Two distinct failures, two distinct checks.** Grounded-but-irrelevant and relevant-but-unsupported are different bugs, and separating them makes each diagnosable.
-- **The retry loop can actually fix things.** Specific feedback — a claim with no support, a sub-question left unanswered — is often enough for a second draft to succeed.
-- **Retrieval is skipped when pointless**, saving a search and keeping irrelevant passages out of the prompt.
-- **Filtering tightens the context**, so generation sees fewer, better passages.
-- **The critique is an audit trail.** Every attempt, grade and piece of feedback is inspectable, which is valuable wherever answers must be defensible.
+- **Catches hallucination directly.** The supported check flags claims the passages don't back.
+- **Separates two failures.** An answer can be grounded but off-topic, or on-topic but unsupported; each gets its own check.
+- **Retries can fix the problem.** Specific feedback is often enough for a better second draft.
+- **Skips pointless retrieval.** Small talk and general questions don't pull irrelevant passages into the prompt.
+- **Leaves an audit trail.** Every grade and piece of feedback can be inspected afterwards.
 
 ## Limitations
 
-- **At least three model calls per answer**, and two more per retry — the budget bounds the worst case, not the typical one.
-- **The critic shares the generator's blind spots.** A misunderstanding confident enough to produce a bad answer is usually confident enough to pass its own review.
-- **Retries can loop on an unfixable problem.** When the real issue is that the context lacks the answer, no rewrite helps, and the budget is spent discovering that.
-- **The router is a single point of failure with no recovery.** Wrongly skipping retrieval means generation and critique both proceed with no context, and nothing downstream brings retrieval back for that turn.
-- **Over-strict critique wastes budget** rejecting acceptable answers; over-lenient critique rubber-stamps bad ones. The threshold is a judgement call baked into a prompt.
-- **Latency is variable**, because a question that retries takes twice as long as one that doesn't — awkward for streaming interfaces, since a draft may be discarded after it would have started rendering.
-- **A best-effort answer still ships.** When the budget runs out the user gets an answer that failed its own checks, and the labelling is what protects them.
+- **Many model calls.** At least three per answer, plus two per retry.
+- **The critic shares the generator's blind spots.** A confident misunderstanding usually passes its own review.
+- **Retries can't add missing facts.** If the passages lack the answer, rewriting just burns the retry budget.
+- **A wrong "no retrieval" call can't be undone.** The answer is generated and critiqued with no context at all.
+- **Unpredictable latency.** A question that retries takes about twice as long, and a failed best-effort draft still ships.
 
 ## Where to use it
 
-- High-stakes answering — medical, legal, financial, compliance — where an unsupported claim is the failure that matters most.
-- Anywhere answers must be defensible after the fact, since the critique record shows what was checked.
-- Mixed conversational workloads combining small talk with document questions, where routing avoids pointless retrieval.
-- Systems with weak or noisy retrieval, where filtering and critique compensate for context quality you cannot improve directly.
-- Not where latency is tight or volume is high, and not as a substitute for retrieval that actually works — self-critique cannot invent an answer the corpus never had.
+- High-stakes answers (medical, legal, financial) where an unsupported claim is the main risk.
+- Places where answers must be defensible later.
+- Chat that mixes small talk with document questions.
+- Not where latency is tight or retrieval itself is broken.
 
 ## In this demo
 
-A LangGraph `StateGraph` with a retry loop. `route` decides whether the question needs retrieval at all; `retrieve` runs `$vectorSearch` against `rag_self_rag`; `filter_relevant` grades each passage relevant or irrelevant via structured output and keeps only the survivors; `generate` drafts an answer from what remains (or from nothing, if retrieval was skipped or nothing survived); `critique` grades the draft on **supported** (`fully_supported` / `partially_supported` / `not_supported`) and **useful**, plus one sentence of feedback. A draft failing either check regenerates with that feedback folded in, up to `max_retries` extra attempts, after which the last draft is returned with a warning that it is a best effort. The page shows the routing decision and its reason, every generate/critique attempt with its grades, and the graph with this question's path outlined — a longer path means at least one retry happened.
+- A LangGraph `StateGraph` with a retry loop. Collection: `rag_self_rag`.
+- Nodes:
+  - `route` decides whether retrieval is needed.
+  - `retrieve` runs `$vectorSearch`.
+  - `filter_relevant` grades each passage relevant/irrelevant with structured output and keeps the survivors.
+  - `generate` drafts from what's left, or from nothing if retrieval was skipped or nothing survived.
+  - `critique` grades **supported** (`fully_supported` / `partially_supported` / `not_supported`) and **useful**, plus one sentence of feedback.
+- A failed draft regenerates with the feedback, up to `max_retries` extra attempts. After that the last draft is returned with a best-effort warning.
+- The page shows the routing decision and reason, each generate/critique attempt with its grades, and the graph with this question's path outlined. A longer path means at least one retry.
