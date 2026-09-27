@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "CRAG",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "question", "label": "Question" },
+    { "id": "fallback", "label": "Web fallback", "variant": "exception" }
+  ],
+  "mainPath": ["question_in", "retrieve", "grade", "generate", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "uploaded document" },
+    { "id": "split", "lane": "ingestion", "col": 1, "type": "backend", "label": "Split", "sublabel": "into passages" },
+    { "id": "embed", "lane": "ingestion", "col": 2, "type": "backend", "label": "Embed", "sublabel": "bge-small-en-v1.5" },
+    { "id": "store", "lane": "ingestion", "col": 3, "type": "database", "label": "rag_crag", "tag": "MongoDB" },
+
+    { "id": "question_in", "lane": "question", "col": 0, "type": "frontend", "label": "Question" },
+    { "id": "retrieve", "lane": "question", "col": 1, "type": "backend", "label": "retrieve", "sublabel": "$vectorSearch" },
+    { "id": "grade", "lane": "question", "col": 2, "type": "backend", "label": "grade", "sublabel": "fast model", "width": 132 },
+    { "id": "generate", "lane": "question", "col": 4, "type": "backend", "label": "generate", "sublabel": "chat model" },
+    { "id": "answer", "lane": "question", "col": 5, "type": "frontend", "label": "Answer", "sublabel": "tagged [doc,p.N] or [web]", "width": 150 },
+
+    { "id": "rewrite_query", "lane": "fallback", "col": 3, "type": "backend", "label": "rewrite_query", "sublabel": "fast model", "width": 132 },
+    { "id": "web_search", "lane": "fallback", "col": 4, "type": "external", "label": "web_search", "sublabel": "ddgs, no key" }
+  ],
+  "edges": [
+    { "id": "pdf-split", "from": "pdf", "to": "split", "label": "extract text" },
+    { "id": "split-embed", "from": "split", "to": "embed", "label": "passages" },
+    { "id": "embed-store", "from": "embed", "to": "store", "label": "vectors + page" },
+    { "id": "store-retrieve", "from": "store", "to": "retrieve", "label": "$vectorSearch", "variant": "dashed" },
+
+    { "id": "question-retrieve", "from": "question_in", "to": "retrieve", "label": "question", "role": "main", "variant": "emphasis" },
+    { "id": "retrieve-grade", "from": "retrieve", "to": "grade", "label": "top-k passages", "role": "main", "variant": "emphasis" },
+    { "id": "grade-generate", "from": "grade", "to": "generate", "label": "≥1 relevant", "role": "main", "variant": "emphasis" },
+    { "id": "generate-answer", "from": "generate", "to": "answer", "label": "grounded reply", "role": "main", "variant": "emphasis" },
+
+    { "id": "grade-rewrite", "from": "grade", "to": "rewrite_query", "label": "none relevant", "role": "branch" },
+    { "id": "rewrite-web", "from": "rewrite_query", "to": "web_search", "label": "search query" },
+    { "id": "web-generate", "from": "web_search", "to": "generate", "label": "web results + ambiguous passages", "role": "return" }
+  ]
+}

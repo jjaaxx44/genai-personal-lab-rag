@@ -1,0 +1,44 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "KAG",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "plan", "label": "Plan + query" },
+    { "id": "retry", "label": "Retry", "variant": "exception" }
+  ],
+  "mainPath": ["question", "decompose", "write_cypher", "check", "query", "answer"],
+  "nodes": [
+    { "id": "schema", "lane": "ingestion", "col": 0, "type": "frontend", "label": "Schema", "sublabel": "entity/relation types", "width": 116 },
+    { "id": "pdf", "lane": "ingestion", "col": 1, "type": "frontend", "label": "PDF", "sublabel": "PDF upload", "width": 90 },
+    { "id": "split_extract", "lane": "ingestion", "col": 2, "type": "backend", "label": "Split + extract", "sublabel": "LLMGraphTransformer", "tag": "strict_mode", "width": 116 },
+    { "id": "graph", "lane": "ingestion", "col": 4, "type": "database", "label": "Knowledge graph", "sublabel": "doc_id, demo='kag'", "tag": "Neo4j", "width": 116 },
+    { "id": "question", "lane": "plan", "col": 0, "type": "frontend", "label": "Question", "width": 100 },
+    { "id": "decompose", "lane": "plan", "col": 1, "type": "backend", "label": "Decompose", "sublabel": "fast model, ≤ 4 steps", "width": 116 },
+    { "id": "write_cypher", "lane": "plan", "col": 2, "type": "backend", "label": "Write Cypher", "sublabel": "chat model, read-only", "width": 120 },
+    { "id": "check", "lane": "plan", "col": 3, "type": "backend", "label": "Read-only check", "sublabel": "no CREATE/MERGE/SET/CALL", "width": 132 },
+    { "id": "query", "lane": "plan", "col": 4, "type": "backend", "label": "Run query", "sublabel": "Neo4jGraph.query()", "width": 116 },
+    { "id": "answer", "lane": "plan", "col": 5, "type": "frontend", "label": "Answer", "sublabel": "chat model; step rows", "width": 120 },
+    { "id": "fix_retry", "lane": "retry", "col": 4, "type": "security", "label": "Fix + retry", "sublabel": "one corrected attempt", "width": 120 }
+  ],
+  "edges": [
+    { "id": "pdf-splitextract", "from": "pdf", "to": "split_extract", "label": "text layer" },
+    { "id": "schema-splitextract", "from": "schema", "to": "split_extract", "label": "allowed_nodes / allowed_relationships" },
+    { "id": "splitextract-graph", "from": "split_extract", "to": "graph", "label": "nodes + relationships" },
+    { "id": "schema-decompose", "from": "schema", "to": "decompose", "variant": "dashed", "label": "entity + relationship types" },
+    { "id": "question-decompose", "from": "question", "to": "decompose", "variant": "emphasis", "role": "main", "label": "question text" },
+    { "id": "decompose-writecypher", "from": "decompose", "to": "write_cypher", "role": "main", "variant": "emphasis", "label": "step description" },
+    { "id": "writecypher-check", "from": "write_cypher", "to": "check", "role": "main", "variant": "emphasis", "label": "generated Cypher" },
+    { "id": "check-query", "from": "check", "to": "query", "role": "main", "variant": "emphasis", "label": "valid, read-only" },
+    { "id": "check-fixretry", "from": "check", "to": "fix_retry", "role": "branch", "label": "blocked" },
+    { "id": "graph-query", "from": "graph", "to": "query", "variant": "dashed", "toSide": "left", "label": "read-only MATCH" },
+    { "id": "query-fixretry", "from": "query", "to": "fix_retry", "role": "error", "fromSide": "bottom", "toSide": "right", "label": "error" },
+    { "id": "query-writecypher", "from": "query", "to": "write_cypher", "role": "return", "fromSide": "top", "toSide": "top", "label": "next step, carry values forward" },
+    { "id": "fixretry-writecypher", "from": "fix_retry", "to": "write_cypher", "role": "return", "route": "return-left", "label": "corrected query" },
+    { "id": "query-answer", "from": "query", "to": "answer", "role": "main", "variant": "emphasis", "label": "all steps done" }
+  ]
+}

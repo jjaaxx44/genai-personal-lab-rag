@@ -4,7 +4,7 @@ import streamlit as st
 
 from core.config import get_settings
 from core.mongo import get_collection
-from core.ui import clear_data_button, evidence_view, metrics_row, pipeline_ribbon, readme_view, upload_widget
+from core.ui import clear_data_button, evidence_view, flow_view, metrics_row, pipeline_ribbon, readme_view, upload_widget
 from demos.rag.naive.pipeline import COLLECTION_NAME, ask, ingest
 
 DEMO = "naive"
@@ -106,9 +106,7 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
-    # Rendered by the archify skill from flow.json; the README keeps its mermaid for GitHub.
-    with st.expander("Explore the flow"):
-        st.iframe(Path(__file__).parent / "flow.html", height=540)
+    flow_view(Path(__file__).parent)
     readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     if result is not None:

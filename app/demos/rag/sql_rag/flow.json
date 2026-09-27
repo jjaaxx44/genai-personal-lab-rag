@@ -1,0 +1,222 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "SQL RAG",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "schema",
+      "label": "Schema"
+    },
+    {
+      "id": "question",
+      "label": "Question"
+    },
+    {
+      "id": "retry",
+      "label": "Retry",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "question",
+    "sqlWriter",
+    "check",
+    "run",
+    "explain",
+    "answer"
+  ],
+  "nodes": [
+    {
+      "id": "chinookDb",
+      "lane": "schema",
+      "col": 0,
+      "type": "database",
+      "label": "chinook.db",
+      "sublabel": "SQLite, read-only",
+      "width": 130
+    },
+    {
+      "id": "schemaDesc",
+      "lane": "schema",
+      "col": 1,
+      "type": "backend",
+      "label": "Inspect schema",
+      "sublabel": "tables, columns, FKs",
+      "tag": "nothing copied",
+      "width": 150
+    },
+    {
+      "id": "question",
+      "lane": "question",
+      "col": 0,
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "width": 118
+    },
+    {
+      "id": "sqlWriter",
+      "lane": "question",
+      "col": 1,
+      "type": "cloud",
+      "label": "Writes one SELECT",
+      "sublabel": "chat model, structured output",
+      "width": 160
+    },
+    {
+      "id": "check",
+      "lane": "question",
+      "col": 2,
+      "type": "backend",
+      "label": "Check in code",
+      "sublabel": "single SELECT/WITH, no writes",
+      "width": 165
+    },
+    {
+      "id": "run",
+      "lane": "question",
+      "col": 3,
+      "type": "backend",
+      "label": "Run, mode=ro",
+      "sublabel": "capped at 50 rows",
+      "width": 140
+    },
+    {
+      "id": "explain",
+      "lane": "question",
+      "col": 4,
+      "type": "cloud",
+      "label": "Explains the rows",
+      "sublabel": "chat model, plain language",
+      "width": 160
+    },
+    {
+      "id": "answer",
+      "lane": "question",
+      "col": 5,
+      "type": "frontend",
+      "label": "Answer",
+      "width": 118
+    },
+    {
+      "id": "retryNode",
+      "lane": "retry",
+      "col": 3,
+      "type": "backend",
+      "label": "Fix prompt with error",
+      "sublabel": "one retry (sql_rag_max_retries)",
+      "width": 165
+    },
+    {
+      "id": "terminal",
+      "lane": "retry",
+      "col": 5,
+      "type": "backend",
+      "label": "Report why",
+      "sublabel": "no result, retries exhausted",
+      "width": 155
+    }
+  ],
+  "edges": [
+    {
+      "id": "db-schema",
+      "from": "chinookDb",
+      "to": "schemaDesc",
+      "label": "inspect",
+      "variant": "default",
+      "role": "main"
+    },
+    {
+      "id": "schema-writer",
+      "from": "schemaDesc",
+      "to": "sqlWriter",
+      "label": "schema description",
+      "variant": "default"
+    },
+    {
+      "id": "question-writer",
+      "from": "question",
+      "to": "sqlWriter",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "writer-check",
+      "from": "sqlWriter",
+      "to": "check",
+      "label": "generated SQL",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "check-run",
+      "from": "check",
+      "to": "run",
+      "label": "passes checks",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "check-retry",
+      "from": "check",
+      "to": "retryNode",
+      "label": "blocked",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "run-explain",
+      "from": "run",
+      "to": "explain",
+      "label": "rows",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "run-retry",
+      "from": "run",
+      "to": "retryNode",
+      "label": "error",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "db-run",
+      "from": "chinookDb",
+      "to": "run",
+      "label": "SELECT on mode=ro",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [[194, 120], [194, 36], [780.4, 36]]
+    },
+    {
+      "id": "retry-writer",
+      "from": "retryNode",
+      "to": "sqlWriter",
+      "label": "fix prompt with the error",
+      "variant": "default",
+      "role": "return",
+      "route": "return-left"
+    },
+    {
+      "id": "retry-terminal",
+      "from": "retryNode",
+      "to": "terminal",
+      "label": "retries exhausted",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "explain-answer",
+      "from": "explain",
+      "to": "answer",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ]
+}

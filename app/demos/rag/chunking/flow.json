@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Chunking Strategies",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      495
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "question path"
+        },
+        "default": {
+          "label": "ingestion (once per document)"
+        },
+        "dashed": {
+          "label": "index lookup"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Input + extract"
+    },
+    {
+      "label": "Split A"
+    },
+    {
+      "label": "Split B"
+    },
+    {
+      "label": "Embed + index + search"
+    },
+    {
+      "label": "Generate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 0,
+      "tag": "ingest"
+    },
+    {
+      "id": "extract",
+      "type": "backend",
+      "label": "Extract per page",
+      "sublabel": "PyMuPDF text layer",
+      "stage": 0,
+      "row": 1
+    },
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "stage": 0,
+      "row": 2,
+      "tag": "query"
+    },
+    {
+      "id": "fixed",
+      "type": "backend",
+      "label": "Fixed-size",
+      "sublabel": "CharacterTextSplitter",
+      "stage": 1,
+      "row": 0
+    },
+    {
+      "id": "recursive",
+      "type": "backend",
+      "label": "Recursive",
+      "sublabel": "RecursiveCharacterTextSplitter",
+      "stage": 1,
+      "row": 1,
+      "width": 160
+    },
+    {
+      "id": "sliding",
+      "type": "backend",
+      "label": "Sliding window",
+      "sublabel": "recursive + large overlap",
+      "stage": 2,
+      "row": 0,
+      "width": 150
+    },
+    {
+      "id": "semantic",
+      "type": "backend",
+      "label": "Semantic",
+      "sublabel": "sentence embeddings, percentile cut",
+      "stage": 2,
+      "row": 1,
+      "width": 190
+    },
+    {
+      "id": "embedChunks",
+      "type": "backend",
+      "label": "Embed chunks",
+      "sublabel": "bge-small-en-v1.5",
+      "stage": 3,
+      "row": 0
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "rag_chunking",
+      "sublabel": "tagged by strategy",
+      "stage": 3,
+      "row": 1,
+      "tag": "MongoDB"
+    },
+    {
+      "id": "search",
+      "type": "backend",
+      "label": "$vectorSearch ×4",
+      "sublabel": "embedded question, per-strategy",
+      "stage": 3,
+      "row": 2,
+      "width": 178
+    },
+    {
+      "id": "chatModel",
+      "type": "cloud",
+      "label": "Chat model ×4",
+      "sublabel": "sequential, one per strategy",
+      "stage": 4,
+      "row": 2,
+      "width": 175
+    },
+    {
+      "id": "compare",
+      "type": "frontend",
+      "label": "Compare",
+      "sublabel": "answers, evidence, cost",
+      "stage": 4,
+      "row": 0
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-extract",
+      "from": "pdf",
+      "to": "extract",
+      "label": "text layer",
+      "labelDy": 24
+    },
+    {
+      "id": "extract-fixed",
+      "from": "extract",
+      "to": "fixed",
+      "label": "pages",
+      "labelAt": [255, 320]
+    },
+    {
+      "id": "extract-recursive",
+      "from": "extract",
+      "to": "recursive",
+      "label": "pages",
+      "route": "straight",
+      "labelAt": [255, 205]
+    },
+    {
+      "id": "extract-sliding",
+      "from": "extract",
+      "to": "sliding",
+      "label": "pages",
+      "toSide": "top",
+      "via": [[200, 271], [200, 110], [530, 110], [530, 128]],
+      "labelSegment": 2
+    },
+    {
+      "id": "extract-semantic",
+      "from": "extract",
+      "to": "semantic",
+      "label": "pages",
+      "via": [[180, 271], [180, 230], [420, 230], [420, 271]],
+      "labelSegment": 2
+    },
+    {
+      "id": "fixed-embed",
+      "from": "fixed",
+      "to": "embedChunks",
+      "label": "chunks",
+      "fromSide": "bottom",
+      "via": [[315, 200], [620, 200], [620, 157]],
+      "labelAt": [470, 210]
+    },
+    {
+      "id": "recursive-embed",
+      "from": "recursive",
+      "to": "embedChunks",
+      "label": "chunks",
+      "via": [[395, 346], [680, 346], [680, 157]],
+      "labelSegment": 1
+    },
+    {
+      "id": "sliding-embed",
+      "from": "sliding",
+      "to": "embedChunks",
+      "label": "chunks",
+      "route": "straight"
+    },
+    {
+      "id": "semantic-embed",
+      "from": "semantic",
+      "to": "embedChunks",
+      "label": "chunks",
+      "labelAt": [590, 230]
+    },
+    {
+      "id": "embed-store",
+      "from": "embedChunks",
+      "to": "store",
+      "label": "vectors + strategy tag",
+      "labelDy": 24
+    },
+    {
+      "id": "store-search",
+      "from": "store",
+      "to": "search",
+      "label": "one search per tag",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "question-search",
+      "from": "question",
+      "to": "search",
+      "label": "question text",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "search-chat",
+      "from": "search",
+      "to": "chatModel",
+      "label": "four chunk sets",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -30
+    },
+    {
+      "id": "chat-compare",
+      "from": "chatModel",
+      "to": "compare",
+      "label": "four answers",
+      "variant": "emphasis"
+    }
+  ]
+}

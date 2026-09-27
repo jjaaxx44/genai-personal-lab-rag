@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agentic RAG",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [1141, 534]
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "tools", "label": "Tools" },
+    { "id": "agent", "label": "Agent loop" }
+  ],
+  "mainPath": ["question", "model", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "uploaded document" },
+    { "id": "extract", "lane": "ingestion", "col": 1, "type": "backend", "label": "Extract per page", "width": 132 },
+    { "id": "split_embed", "lane": "ingestion", "col": 2, "type": "backend", "label": "Split + embed", "sublabel": "bge-small-en-v1.5", "tag": "kind=chunk" },
+    { "id": "whole_pages", "lane": "ingestion", "col": 3, "type": "backend", "label": "Whole pages", "sublabel": "not embedded", "tag": "kind=page" },
+    { "id": "store", "lane": "ingestion", "col": 4, "type": "database", "label": "rag_agentic", "tag": "MongoDB" },
+
+    { "id": "search_document", "lane": "tools", "col": 4, "type": "backend", "label": "search_document(query)", "sublabel": "$vectorSearch on chunks", "width": 170 },
+    { "id": "get_page", "lane": "tools", "col": 5, "type": "backend", "label": "get_page(page)", "sublabel": "fetch one whole page", "width": 150 },
+
+    { "id": "question", "lane": "agent", "col": 0, "type": "frontend", "label": "Question" },
+    { "id": "model", "lane": "agent", "col": 2, "type": "backend", "label": "Chat model", "sublabel": "create_agent ReAct loop", "tag": "bounded by agentic_recursion_limit", "width": 170 },
+    { "id": "answer", "lane": "agent", "col": 5, "type": "frontend", "label": "Answer", "sublabel": "with page citations", "width": 132 }
+  ],
+  "edges": [
+    { "id": "pdf-extract", "from": "pdf", "to": "extract", "label": "text per page" },
+    { "id": "extract-split", "from": "extract", "to": "split_embed", "label": "split into passages" },
+    { "id": "extract-pages", "from": "extract", "to": "whole_pages", "label": "keep whole page", "fromSide": "bottom", "toSide": "bottom", "route": "bottom-channel", "labelSegment": 1 },
+    { "id": "split-store", "from": "split_embed", "to": "store", "label": "vectors, kind=chunk" },
+    { "id": "pages-store", "from": "whole_pages", "to": "store", "label": "text, kind=page" },
+
+    { "id": "store-search", "from": "store", "to": "search_document", "label": "$vectorSearch, kind=chunk", "variant": "dashed" },
+    { "id": "store-getpage", "from": "store", "to": "get_page", "label": "kind=page lookup", "variant": "dashed" },
+
+    { "id": "question-model", "from": "question", "to": "model", "label": "question", "role": "main", "variant": "emphasis" },
+    { "id": "model-search", "from": "model", "to": "search_document", "label": "call search_document(query)", "role": "branch", "variant": "emphasis" },
+    { "id": "model-getpage", "from": "model", "to": "get_page", "label": "call get_page(page)", "role": "branch" },
+    { "id": "search-model", "from": "search_document", "to": "model", "label": "result added to conversation", "role": "return", "channelY": 210 },
+    { "id": "getpage-model", "from": "get_page", "to": "model", "label": "result added to conversation", "role": "return" },
+    { "id": "model-answer", "from": "model", "to": "answer", "label": "answer with citations", "role": "main", "variant": "emphasis" }
+  ]
+}

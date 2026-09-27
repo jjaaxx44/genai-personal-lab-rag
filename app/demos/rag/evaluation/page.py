@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from core.config import get_settings
-from core.ui import readme_view, upload_widget
+from core.ui import flow_view, readme_view, upload_widget
 from demos.rag.evaluation.pipeline import DEMOS, METRICS, TestCase, generate_test_set, push_scores_to_langfuse, run_evaluation
 
 DEMO = "evaluation"
@@ -142,6 +142,7 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
+    flow_view(Path(__file__).parent)
     readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     if results:

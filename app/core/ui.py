@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import streamlit as st
 from pymongo.collection import Collection
 
@@ -153,6 +155,17 @@ def clear_data_button(demo_key: str, collection: Collection, doc_id: str | None)
         st.session_state[f"{demo_key}_upload_gen"] = st.session_state.get(f"{demo_key}_upload_gen", 0) + 1
         return True
     return False
+
+
+def flow_view(demo_dir: Path) -> None:
+    """Collapsed 'Explore the flow' expander with the demo's flow.html, rendered by the
+    archify skill from flow.json; the README keeps its mermaid for GitHub."""
+    with st.expander("Explore the flow"):
+        flow_html = demo_dir / "flow.html"
+        if flow_html.exists():
+            st.iframe(flow_html, height=540)
+        else:
+            st.caption("Flow diagram not generated yet.")
 
 
 def readme_view(path) -> None:

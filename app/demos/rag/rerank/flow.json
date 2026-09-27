@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Re-ranking",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      490
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "question path"
+        },
+        "default": {
+          "label": "ingestion (once per document)"
+        },
+        "dashed": {
+          "label": "index lookup"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Input"
+    },
+    {
+      "label": "Prepare"
+    },
+    {
+      "label": "Embed"
+    },
+    {
+      "label": "Retrieve + rerank"
+    },
+    {
+      "label": "Generate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 0,
+      "tag": "ingest"
+    },
+    {
+      "id": "split",
+      "type": "backend",
+      "label": "Split",
+      "sublabel": "RecursiveCharacterTextSplitter",
+      "stage": 1,
+      "row": 0,
+      "width": 150
+    },
+    {
+      "id": "embedDocs",
+      "type": "backend",
+      "label": "Embed passages",
+      "sublabel": "bge-small-en-v1.5",
+      "stage": 2,
+      "row": 0
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "rag_rerank",
+      "sublabel": "vector index",
+      "stage": 3,
+      "row": 0,
+      "tag": "MongoDB"
+    },
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "stage": 0,
+      "row": 1,
+      "tag": "query"
+    },
+    {
+      "id": "similaritySearch",
+      "type": "backend",
+      "label": "Stage 1: similarity search",
+      "sublabel": "similarity_search_with_score, candidate_k=20",
+      "stage": 3,
+      "row": 1,
+      "width": 230
+    },
+    {
+      "id": "crossEncoder",
+      "type": "backend",
+      "label": "Stage 2: cross-encoder",
+      "sublabel": "ms-marco-MiniLM-L-6-v2, local CPU",
+      "stage": 3,
+      "row": 2,
+      "width": 200
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Chat model",
+      "sublabel": "LCEL chain",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "answer",
+      "type": "frontend",
+      "label": "Answer",
+      "sublabel": "with page citations",
+      "stage": 4,
+      "row": 0
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-split",
+      "from": "pdf",
+      "to": "split",
+      "label": "text layer"
+    },
+    {
+      "id": "split-embed",
+      "from": "split",
+      "to": "embedDocs",
+      "label": "chunks"
+    },
+    {
+      "id": "embed-store",
+      "from": "embedDocs",
+      "to": "store",
+      "label": "vectors"
+    },
+    {
+      "id": "question-search",
+      "from": "question",
+      "to": "similaritySearch",
+      "label": "question text",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "store-search",
+      "from": "store",
+      "to": "similaritySearch",
+      "label": "similarity_search_with_score",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "search-crossencoder",
+      "from": "similaritySearch",
+      "to": "crossEncoder",
+      "label": "candidate pool (candidate_k=20)",
+      "variant": "emphasis",
+      "labelDy": 48
+    },
+    {
+      "id": "question-crossencoder",
+      "from": "question",
+      "to": "crossEncoder",
+      "label": "question + passage pairs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "crossencoder-llm",
+      "from": "crossEncoder",
+      "to": "llm",
+      "label": "top_k=5, re-sorted",
+      "variant": "emphasis"
+    },
+    {
+      "id": "llm-answer",
+      "from": "llm",
+      "to": "answer",
+      "label": "grounded reply",
+      "variant": "emphasis"
+    }
+  ]
+}

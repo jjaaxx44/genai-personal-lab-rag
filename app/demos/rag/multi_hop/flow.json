@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Multi-hop RAG",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [1141, 534]
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "hoploop", "label": "Hop loop" },
+    { "id": "question", "label": "Question" }
+  ],
+  "mainPath": ["question", "decompose", "hop_retrieve", "hop_answer", "combine", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "PDF upload", "width": 90 },
+    { "id": "split", "lane": "ingestion", "col": 1, "type": "backend", "label": "Split", "sublabel": "overlapping passages", "width": 116 },
+    { "id": "embed", "lane": "ingestion", "col": 2, "type": "backend", "label": "Embed", "sublabel": "bge-small-en-v1.5", "width": 116 },
+    { "id": "index", "lane": "ingestion", "col": 3, "type": "database", "label": "rag_multi_hop", "sublabel": "searched several times", "tag": "MongoDB", "width": 132 },
+    { "id": "question", "lane": "question", "col": 0, "type": "frontend", "label": "Question", "width": 90 },
+    { "id": "decompose", "lane": "question", "col": 1, "type": "backend", "label": "Decompose", "sublabel": "fast model", "tag": "≤ max_hops", "width": 116 },
+    { "id": "combine", "lane": "question", "col": 4, "type": "backend", "label": "Combine", "sublabel": "chat model", "width": 90 },
+    { "id": "answer", "lane": "question", "col": 5, "type": "frontend", "label": "Answer", "sublabel": "with citations", "width": 100 },
+    { "id": "hop_retrieve", "lane": "hoploop", "col": 3, "type": "backend", "label": "Retrieve for sub-question", "sublabel": "$vectorSearch", "width": 170 },
+    { "id": "hop_answer", "lane": "hoploop", "col": 4, "type": "backend", "label": "Answer sub-question", "sublabel": "fast model; earlier Q&A in prompt", "width": 170 }
+  ],
+  "edges": [
+    { "id": "pdf-split", "from": "pdf", "to": "split", "label": "text layer" },
+    { "id": "split-embed", "from": "split", "to": "embed", "label": "passages" },
+    { "id": "embed-index", "from": "embed", "to": "index", "label": "vectors + page" },
+    { "id": "index-hopretrieve", "from": "index", "to": "hop_retrieve", "variant": "dashed", "label": "$vectorSearch" },
+    { "id": "question-decompose", "from": "question", "to": "decompose", "variant": "emphasis", "role": "main", "label": "question text" },
+    { "id": "decompose-hopretrieve", "from": "decompose", "to": "hop_retrieve", "variant": "emphasis", "role": "main" },
+    { "id": "hopretrieve-hopanswer", "from": "hop_retrieve", "to": "hop_answer", "role": "main", "variant": "emphasis" },
+    { "id": "hopanswer-loop", "from": "hop_answer", "to": "hop_retrieve", "label": "more sub-questions: carry answers forward", "role": "return" },
+    { "id": "hopanswer-combine", "from": "hop_answer", "to": "combine", "label": "no more sub-questions", "role": "main", "variant": "emphasis" },
+    { "id": "combine-answer", "from": "combine", "to": "answer", "role": "main", "variant": "emphasis" }
+  ]
+}

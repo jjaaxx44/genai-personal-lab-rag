@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "RAG Evaluation",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      490
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "scoring path"
+        },
+        "default": {
+          "label": "test-set creation (once per document)"
+        },
+        "dashed": {
+          "label": "per-demo store + optional export"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Source ↔ Report"
+    },
+    {
+      "label": "Sample ↔ Judge"
+    },
+    {
+      "label": "Draft ↔ Collect"
+    },
+    {
+      "label": "Test set ↔ Compare"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 0,
+      "tag": "ingest",
+      "width": 125
+    },
+    {
+      "id": "sample",
+      "type": "backend",
+      "label": "Sample passages",
+      "sublabel": "RecursiveCharacterTextSplitter",
+      "stage": 1,
+      "row": 0,
+      "width": 150
+    },
+    {
+      "id": "writer",
+      "type": "cloud",
+      "label": "Fast chat model",
+      "sublabel": "Q + reference answer, batched",
+      "stage": 2,
+      "row": 0,
+      "width": 155
+    },
+    {
+      "id": "testSet",
+      "type": "database",
+      "label": "Editable test set",
+      "sublabel": "st.data_editor, reviewed by hand",
+      "stage": 3,
+      "row": 0,
+      "tag": "review",
+      "width": 160
+    },
+    {
+      "id": "comparedDemos",
+      "type": "backend",
+      "label": "Compared demos",
+      "sublabel": "naive · hybrid · rerank · contextual",
+      "stage": 3,
+      "row": 1,
+      "width": 165
+    },
+    {
+      "id": "demoCollections",
+      "type": "database",
+      "label": "Demo collections",
+      "sublabel": "own collection per demo",
+      "stage": 3,
+      "row": 2,
+      "tag": "MongoDB",
+      "width": 150
+    },
+    {
+      "id": "tuples",
+      "type": "backend",
+      "label": "Result tuples",
+      "sublabel": "Q, answer, contexts, reference",
+      "stage": 2,
+      "row": 1,
+      "width": 165
+    },
+    {
+      "id": "ragasJudge",
+      "type": "cloud",
+      "label": "Ragas judge",
+      "sublabel": "faithfulness · relevancy\nprecision · recall",
+      "stage": 1,
+      "row": 1,
+      "tag": "1st provider, no fallback",
+      "width": 191
+    },
+    {
+      "id": "output",
+      "type": "frontend",
+      "label": "Table, chart, CSV",
+      "sublabel": "one row per demo",
+      "stage": 0,
+      "row": 1,
+      "width": 140
+    },
+    {
+      "id": "langfuse",
+      "type": "external",
+      "label": "Langfuse scores",
+      "sublabel": "score events",
+      "stage": 0,
+      "row": 2,
+      "tag": "optional",
+      "width": 130
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-sample",
+      "from": "pdf",
+      "to": "sample",
+      "label": "text layer"
+    },
+    {
+      "id": "sample-writer",
+      "from": "sample",
+      "to": "writer",
+      "label": "passages",
+      "labelDy": -23
+    },
+    {
+      "id": "writer-testset",
+      "from": "writer",
+      "to": "testSet",
+      "label": "Q + reference drafts",
+      "labelDy": -23
+    },
+    {
+      "id": "testset-compared",
+      "from": "testSet",
+      "to": "comparedDemos",
+      "label": "reviewed questions",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelDy": 24
+    },
+    {
+      "id": "collections-compared",
+      "from": "demoCollections",
+      "to": "comparedDemos",
+      "label": "own collection, ingest if needed",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "route": "straight"
+    },
+    {
+      "id": "compared-tuples",
+      "from": "comparedDemos",
+      "to": "tuples",
+      "label": "ingest + ask()",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "id": "tuples-ragas",
+      "from": "tuples",
+      "to": "ragasJudge",
+      "label": "scored per tuple",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "id": "ragas-output",
+      "from": "ragasJudge",
+      "to": "output",
+      "label": "per-demo means",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "id": "output-langfuse",
+      "from": "output",
+      "to": "langfuse",
+      "label": "score events (optional)",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelDy": 24
+    }
+  ]
+}

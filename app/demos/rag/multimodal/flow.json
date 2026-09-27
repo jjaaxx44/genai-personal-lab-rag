@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Multimodal RAG",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      490
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "question path"
+        },
+        "default": {
+          "label": "ingestion (once per document)"
+        },
+        "dashed": {
+          "label": "index lookup"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Input"
+    },
+    {
+      "label": "Extract"
+    },
+    {
+      "label": "Caption"
+    },
+    {
+      "label": "Embed + index"
+    },
+    {
+      "label": "Generate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "stage": 0,
+      "row": 0,
+      "tag": "query"
+    },
+    {
+      "id": "search",
+      "type": "backend",
+      "label": "Vector search + top-k",
+      "sublabel": "one search, both modalities",
+      "stage": 3,
+      "row": 0,
+      "width": 190
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Chat model",
+      "sublabel": "LCEL chain",
+      "stage": 4,
+      "row": 0,
+      "width": 130
+    },
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 1,
+      "tag": "ingest"
+    },
+    {
+      "id": "splitText",
+      "type": "backend",
+      "label": "Text per page",
+      "sublabel": "split ~800/100",
+      "stage": 1,
+      "row": 1,
+      "width": 140
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Vector index",
+      "sublabel": "rag_multimodal",
+      "stage": 3,
+      "row": 1,
+      "tag": "modality: text | image",
+      "width": 150
+    },
+    {
+      "id": "answer",
+      "type": "frontend",
+      "label": "Answer",
+      "sublabel": "with page citations",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "extractImages",
+      "type": "backend",
+      "label": "Extract images",
+      "sublabel": "dedup by xref, min px",
+      "stage": 1,
+      "row": 2,
+      "width": 150
+    },
+    {
+      "id": "captionImages",
+      "type": "cloud",
+      "label": "Caption each image",
+      "sublabel": "vision-capable chat model",
+      "stage": 2,
+      "row": 2,
+      "width": 180
+    },
+    {
+      "id": "pngStore",
+      "type": "database",
+      "label": "PNG files",
+      "sublabel": "data/multimodal/<doc_id>/",
+      "stage": 3,
+      "row": 2,
+      "width": 170
+    },
+    {
+      "id": "imagesShown",
+      "type": "frontend",
+      "label": "Images shown",
+      "sublabel": "beside their captions",
+      "stage": 4,
+      "row": 2
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-text",
+      "from": "pdf",
+      "to": "splitText",
+      "label": "text layer",
+      "route": "straight"
+    },
+    {
+      "id": "pdf-images",
+      "from": "pdf",
+      "to": "extractImages",
+      "label": "embedded images"
+    },
+    {
+      "id": "text-store",
+      "from": "splitText",
+      "to": "store",
+      "label": "embed, modality=text",
+      "route": "straight",
+      "labelDy": -20
+    },
+    {
+      "id": "images-caption",
+      "from": "extractImages",
+      "to": "captionImages",
+      "label": "candidate images",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "caption-store",
+      "from": "captionImages",
+      "to": "store",
+      "label": "embed caption, modality=image"
+    },
+    {
+      "id": "caption-png",
+      "from": "captionImages",
+      "to": "pngStore",
+      "label": "save PNG",
+      "route": "straight",
+      "labelAt": [
+        640,
+        428
+      ]
+    },
+    {
+      "id": "question-search",
+      "from": "question",
+      "to": "search",
+      "label": "question text",
+      "variant": "emphasis"
+    },
+    {
+      "id": "store-search",
+      "from": "store",
+      "to": "search",
+      "label": "$vectorSearch, mixed top-k",
+      "variant": "dashed",
+      "labelAt": [
+        745,
+        238
+      ]
+    },
+    {
+      "id": "search-llm",
+      "from": "search",
+      "to": "llm",
+      "label": "top-k passages + captions",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "llm-answer",
+      "from": "llm",
+      "to": "answer",
+      "label": "grounded reply",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "search-images",
+      "from": "search",
+      "to": "imagesShown",
+      "label": "retrieved image hits",
+      "variant": "emphasis",
+      "labelAt": [
+        872,
+        314
+      ]
+    },
+    {
+      "id": "png-images",
+      "from": "pngStore",
+      "to": "imagesShown",
+      "label": "image files",
+      "variant": "dashed",
+      "route": "straight",
+      "labelAt": [
+        845,
+        428
+      ]
+    }
+  ]
+}

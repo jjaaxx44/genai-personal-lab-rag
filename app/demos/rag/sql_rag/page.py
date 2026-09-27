@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from core.config import get_settings
-from core.ui import pipeline_ribbon, readme_view
+from core.ui import flow_view, pipeline_ribbon, readme_view
 from demos.rag.sql_rag.pipeline import DB_PATH, ask, describe_schema, get_engine
 
 DEMO = "sql_rag"
@@ -80,6 +80,7 @@ how_tab, trace_tab = st.tabs(
     ["How it works", "Trace"], key=f"{DEMO}_tabs", on_change="rerun"
 )
 with how_tab:
+    flow_view(Path(__file__).parent)
     readme_view(Path(__file__).parent / "README.md")
 with trace_tab:
     if result is not None:

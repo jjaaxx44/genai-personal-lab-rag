@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Self-RAG",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "question", "label": "Question" }
+  ],
+  "mainPath": ["question_in", "route", "retrieve", "filter_relevant", "generate", "critique", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "uploaded document" },
+    { "id": "split", "lane": "ingestion", "col": 1, "type": "backend", "label": "Split", "sublabel": "into passages" },
+    { "id": "embed", "lane": "ingestion", "col": 2, "type": "backend", "label": "Embed", "sublabel": "bge-small-en-v1.5" },
+    { "id": "store", "lane": "ingestion", "col": 3, "type": "database", "label": "rag_self_rag", "tag": "MongoDB", "width": 132 },
+
+    { "id": "question_in", "lane": "question", "col": 0, "type": "frontend", "label": "Question", "yOffset": -32 },
+    { "id": "route", "lane": "question", "col": 0, "type": "backend", "label": "route", "sublabel": "fast model", "yOffset": 32 },
+    { "id": "retrieve", "lane": "question", "col": 1, "type": "backend", "label": "retrieve", "sublabel": "$vectorSearch" },
+    { "id": "filter_relevant", "lane": "question", "col": 2, "type": "backend", "label": "filter_relevant", "sublabel": "fast model", "width": 132 },
+    { "id": "generate", "lane": "question", "col": 3, "type": "backend", "label": "generate", "sublabel": "chat model" },
+    { "id": "critique", "lane": "question", "col": 4, "type": "backend", "label": "critique", "sublabel": "supported? useful?", "width": 132 },
+    { "id": "answer", "lane": "question", "col": 5, "type": "frontend", "label": "Answer" }
+  ],
+  "edges": [
+    { "id": "pdf-split", "from": "pdf", "to": "split", "label": "extract text" },
+    { "id": "split-embed", "from": "split", "to": "embed", "label": "passages" },
+    { "id": "embed-store", "from": "embed", "to": "store", "label": "vectors + page" },
+    { "id": "store-retrieve", "from": "store", "to": "retrieve", "label": "$vectorSearch", "variant": "dashed" },
+
+    { "id": "question-route", "from": "question_in", "to": "route", "label": "question", "role": "main", "variant": "emphasis" },
+    { "id": "route-retrieve", "from": "route", "to": "retrieve", "label": "yes, needs retrieval", "role": "main", "variant": "emphasis" },
+    { "id": "route-generate", "from": "route", "to": "generate", "label": "no, skip retrieval", "role": "branch" },
+    { "id": "retrieve-filter", "from": "retrieve", "to": "filter_relevant", "label": "top-k passages", "role": "main", "variant": "emphasis" },
+    { "id": "filter-generate", "from": "filter_relevant", "to": "generate", "label": "relevant passages kept", "role": "main", "variant": "emphasis" },
+    { "id": "generate-critique", "from": "generate", "to": "critique", "label": "draft answer", "role": "main", "variant": "emphasis" },
+    { "id": "critique-answer-pass", "from": "critique", "to": "answer", "label": "both pass", "role": "main", "variant": "emphasis" },
+    { "id": "critique-answer-outoftries", "from": "critique", "to": "answer", "label": "out of tries, best effort", "role": "error" },
+
+    { "id": "critique-generate-retry", "from": "critique", "to": "generate", "label": "retry with feedback (≤ max_retries)", "role": "return" }
+  ]
+}

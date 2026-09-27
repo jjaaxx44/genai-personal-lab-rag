@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Vectorless RAG",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "navigation", "label": "Navigation" }
+  ],
+  "mainPath": ["question", "showSection", "descendOrStop", "readSection", "chatModel", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "uploaded document", "width": 132 },
+    { "id": "tocCheck", "lane": "ingestion", "col": 1, "type": "backend", "label": "Read table of contents", "sublabel": "PyMuPDF get_toc()", "width": 150 },
+    { "id": "headingTree", "lane": "ingestion", "col": 2, "type": "backend", "label": "Heading tree", "sublabel": "pages run to next heading", "width": 165 },
+    { "id": "pageGroups", "lane": "ingestion", "col": 3, "type": "cloud", "label": "Page groups of 5", "sublabel": "fast model summary per group", "width": 180 },
+    { "id": "sectionTree", "lane": "ingestion", "col": 4, "type": "database", "label": "Section tree JSON", "sublabel": "no chunks, no vectors", "tag": "data/vectorless/", "width": 150 },
+    { "id": "question", "lane": "navigation", "col": 0, "type": "frontend", "label": "Question", "sublabel": "from the user", "width": 132 },
+    { "id": "showSection", "lane": "navigation", "col": 1, "type": "cloud", "label": "Show section + children", "sublabel": "titles + pages per step", "width": 175 },
+    { "id": "descendOrStop", "lane": "navigation", "col": 2, "type": "backend", "label": "Descend or stop?", "sublabel": "parse the model's choice", "width": 150 },
+    { "id": "readSection", "lane": "navigation", "col": 3, "type": "backend", "label": "Read full section text", "sublabel": "≤ 8000 chars", "width": 150 },
+    { "id": "chatModel", "lane": "navigation", "col": 4, "type": "cloud", "label": "Chat model", "sublabel": "answers from read pages", "width": 118 },
+    { "id": "answer", "lane": "navigation", "col": 5, "type": "frontend", "label": "Answer", "sublabel": "with page citations" }
+  ],
+  "edges": [
+    { "id": "pdf-toc", "from": "pdf", "to": "tocCheck", "variant": "default", "role": "main" },
+    { "id": "toc-heading", "from": "tocCheck", "to": "headingTree", "label": "has TOC", "variant": "default", "role": "branch" },
+    { "id": "toc-groups", "from": "tocCheck", "to": "pageGroups", "label": "no TOC", "variant": "default", "role": "branch" },
+    { "id": "heading-tree", "from": "headingTree", "to": "sectionTree", "variant": "default", "role": "main" },
+    { "id": "groups-tree", "from": "pageGroups", "to": "sectionTree", "variant": "default", "role": "main" },
+    { "id": "tree-show", "from": "sectionTree", "to": "showSection", "label": "read section + children", "variant": "dashed" },
+    { "id": "question-show", "from": "question", "to": "showSection", "variant": "emphasis", "role": "main" },
+    { "id": "show-descend", "from": "showSection", "to": "descendOrStop", "variant": "emphasis", "role": "main" },
+    { "id": "descend-loop", "from": "descendOrStop", "to": "showSection", "label": "descend into child", "variant": "default", "role": "return", "route": "up-channel" },
+    { "id": "descend-read", "from": "descendOrStop", "to": "readSection", "label": "stop, unparseable reply, or depth ≥ 6", "variant": "emphasis", "role": "main" },
+    { "id": "read-chat", "from": "readSection", "to": "chatModel", "variant": "emphasis", "role": "main" },
+    { "id": "chat-answer", "from": "chatModel", "to": "answer", "variant": "emphasis", "role": "main" }
+  ]
+}

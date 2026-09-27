@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Contextual Retrieval",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      490
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "question path"
+        },
+        "default": {
+          "label": "ingestion (once per document)"
+        },
+        "dashed": {
+          "label": "index lookup"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "Input"
+    },
+    {
+      "label": "Prepare"
+    },
+    {
+      "label": "Contextualize"
+    },
+    {
+      "label": "Embed + index"
+    },
+    {
+      "label": "Generate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "pdf",
+      "type": "frontend",
+      "label": "PDF",
+      "sublabel": "uploaded document",
+      "stage": 0,
+      "row": 0,
+      "tag": "ingest"
+    },
+    {
+      "id": "split",
+      "type": "backend",
+      "label": "Split",
+      "sublabel": "800 chars, 100 overlap",
+      "stage": 1,
+      "row": 0,
+      "width": 150
+    },
+    {
+      "id": "wholeDoc",
+      "type": "backend",
+      "label": "Whole document",
+      "sublabel": "truncated at 60k chars",
+      "stage": 1,
+      "row": 1,
+      "width": 150
+    },
+    {
+      "id": "contextWriter",
+      "type": "cloud",
+      "label": "Context writer",
+      "sublabel": "fast model, 8 passages/call",
+      "stage": 2,
+      "row": 0,
+      "width": 180
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "Vector + BM25 index",
+      "sublabel": "rag_contextual",
+      "stage": 3,
+      "row": 0,
+      "tag": "variant: plain | contextual",
+      "width": 170
+    },
+    {
+      "id": "question",
+      "type": "frontend",
+      "label": "Question",
+      "sublabel": "from the user",
+      "stage": 0,
+      "row": 2,
+      "tag": "query"
+    },
+    {
+      "id": "embedQuestion",
+      "type": "backend",
+      "label": "Embed question",
+      "sublabel": "same embedding model",
+      "stage": 2,
+      "row": 2,
+      "width": 160
+    },
+    {
+      "id": "hybridRetriever",
+      "type": "backend",
+      "label": "Hybrid search",
+      "sublabel": "vector + BM25 + RRF",
+      "stage": 3,
+      "row": 2,
+      "tag": "filtered by variant",
+      "width": 170
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "Chat model",
+      "sublabel": "original text only",
+      "stage": 4,
+      "row": 2,
+      "width": 150
+    },
+    {
+      "id": "answer",
+      "type": "frontend",
+      "label": "Answer",
+      "sublabel": "with page citations",
+      "stage": 4,
+      "row": 0
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-split",
+      "from": "pdf",
+      "to": "split",
+      "label": "text layer",
+      "route": "straight"
+    },
+    {
+      "id": "pdf-wholedoc",
+      "from": "pdf",
+      "to": "wholeDoc",
+      "label": "whole text"
+    },
+    {
+      "id": "split-context",
+      "from": "split",
+      "to": "contextWriter",
+      "label": "passages, 8/call",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "wholedoc-context",
+      "from": "wholeDoc",
+      "to": "contextWriter",
+      "label": "whole document",
+      "labelDy": 20
+    },
+    {
+      "id": "context-store",
+      "from": "contextWriter",
+      "to": "store",
+      "label": "prepend, embed + BM25 index",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "question-embed",
+      "from": "question",
+      "to": "embedQuestion",
+      "label": "question text",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "embed-search",
+      "from": "embedQuestion",
+      "to": "hybridRetriever",
+      "label": "query vector",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "store-search",
+      "from": "store",
+      "to": "hybridRetriever",
+      "label": "vector + BM25 lookup",
+      "variant": "dashed",
+      "labelDy": 24
+    },
+    {
+      "id": "search-llm",
+      "from": "hybridRetriever",
+      "to": "llm",
+      "label": "top-k, context dropped",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -28
+    },
+    {
+      "id": "llm-answer",
+      "from": "llm",
+      "to": "answer",
+      "label": "grounded reply",
+      "variant": "emphasis"
+    }
+  ]
+}

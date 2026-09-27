@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Adaptive RAG",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [1141, 534]
+  },
+  "lanes": [
+    { "id": "ingestion", "label": "Ingestion" },
+    { "id": "route", "label": "Route" },
+    { "id": "multi", "label": "Multi-step" }
+  ],
+  "mainPath": ["question", "route", "single_step", "answer"],
+  "nodes": [
+    { "id": "pdf", "lane": "ingestion", "col": 0, "type": "frontend", "label": "PDF", "sublabel": "uploaded document" },
+    { "id": "ingest", "lane": "ingestion", "col": 1, "type": "backend", "label": "Split + embed", "sublabel": "bge-small-en-v1.5" },
+    { "id": "index", "lane": "ingestion", "col": 2, "type": "database", "label": "rag_adaptive", "sublabel": "shared, all routes", "tag": "MongoDB", "width": 132 },
+
+    { "id": "question", "lane": "route", "col": 0, "type": "frontend", "label": "Question" },
+    { "id": "route", "lane": "route", "col": 1, "type": "backend", "label": "Route", "sublabel": "fast model", "tag": "route + reason", "width": 132 },
+    { "id": "single_step", "lane": "route", "col": 2, "type": "backend", "label": "Retrieve + generate", "sublabel": "one $vectorSearch", "width": 148 },
+    { "id": "no_retrieval_generate", "lane": "route", "col": 3, "type": "backend", "label": "Generate directly", "sublabel": "chat model only", "width": 132 },
+    { "id": "answer", "lane": "route", "col": 4, "type": "frontend", "label": "Answer" },
+
+    { "id": "decompose", "lane": "multi", "col": 1, "type": "backend", "label": "Decompose", "sublabel": "2-3 sub-Qs" },
+    { "id": "hop_retrieve", "lane": "multi", "col": 2, "type": "backend", "label": "Retrieve for sub-question", "sublabel": "$vectorSearch", "width": 170 },
+    { "id": "hop_answer", "lane": "multi", "col": 3, "type": "backend", "label": "Answer sub-question", "sublabel": "fast model", "width": 132 },
+    { "id": "combine", "lane": "multi", "col": 4, "type": "backend", "label": "Combine", "sublabel": "chat model" }
+  ],
+  "edges": [
+    { "id": "pdf-ingest", "from": "pdf", "to": "ingest", "label": "extract text" },
+    { "id": "ingest-index", "from": "ingest", "to": "index", "label": "vectors + page" },
+
+    { "id": "question-route", "from": "question", "to": "route", "label": "question text", "role": "main", "variant": "emphasis" },
+    { "id": "route-single", "from": "route", "to": "single_step", "label": "single_step", "role": "main", "variant": "emphasis" },
+    { "id": "route-noretrieval", "from": "route", "to": "no_retrieval_generate", "label": "no_retrieval", "role": "branch" },
+    { "id": "route-multi", "from": "route", "to": "decompose", "label": "multi_step", "role": "branch" },
+
+    { "id": "index-single", "from": "index", "to": "single_step", "variant": "dashed", "label": "one $vectorSearch", "fromSide": "bottom", "toSide": "top" },
+    { "id": "index-hop", "from": "index", "to": "hop_retrieve", "variant": "dashed", "label": "$vectorSearch per sub-question", "fromSide": "right", "toSide": "bottom", "via": [[1000, 120], [1000, 430], [497.8, 430]], "labelSegment": 0 },
+
+    { "id": "decompose-hop", "from": "decompose", "to": "hop_retrieve", "label": "sub-questions" },
+    { "id": "hop-retrieve-answer", "from": "hop_retrieve", "to": "hop_answer", "label": "passages" },
+    { "id": "hop-loop", "from": "hop_answer", "to": "hop_retrieve", "label": "next sub-question", "role": "return" },
+    { "id": "hop-combine", "from": "hop_answer", "to": "combine", "label": "done" },
+
+    { "id": "noretrieval-answer", "from": "no_retrieval_generate", "to": "answer" },
+    { "id": "single-answer", "from": "single_step", "to": "answer", "role": "main", "variant": "emphasis" },
+    { "id": "combine-answer", "from": "combine", "to": "answer" }
+  ]
+}
