@@ -24,14 +24,14 @@ UI work: `DESIGN.md` holds this app's design tokens and page patterns. Method co
 
 ## Flow diagrams
 
-Each demo's `flow.json` is the source, written for the `archify` skill. `flow.html` is its render and is never edited by hand. Install the skill into this repo from its root with `npx -y skills add tt-a1i/archify --skill archify --agent claude-code --copy --yes` (v2.17 was used for the first diagrams). It lands in `.claude/skills/archify/`, which is gitignored. Draw one `dataflow` diagram per demo, with ingestion and question time as two rows that meet at the store. Labels name the real models, collections and calls from `pipeline.py`. Regenerate from the skill folder:
+Each demo's `flow.json` is the source, written for the `archify` skill. `flow.html` is its render and is never edited by hand. Install the skill into this repo from its root with `npx -y skills add tt-a1i/archify --skill archify --agent claude-code --copy --yes` (v2.17 was used for the first diagrams). It lands in `.claude/skills/archify/`, which is gitignored. Draw one diagram per demo. Use `dataflow` by default, with ingestion and question time as rows. Use a `workflow` (schema v2: lanes, plus `role: return` edges for the loop) when the technique is a loop or branch that a dataflow can't show honestly. Today that's agentic, crag, self_rag, adaptive, multi_hop, vectorless, kag and sql_rag. Either way, ingestion and question time meet at the store through a dashed edge from the store to what reads it, never the reverse. A store named only in a label doesn't count. Labels name the real models, collections and calls from `pipeline.py`. Regenerate from the skill folder, with `<type>` being `dataflow` or `workflow`:
 
 ```bash
-node bin/archify.mjs validate dataflow <demo>/flow.json --quality showcase --json
-node bin/archify.mjs deliver dataflow <demo>/flow.json <demo>/flow.html --quality showcase --json
+node bin/archify.mjs validate <type> <demo>/flow.json --quality showcase --json
+node bin/archify.mjs deliver <type> <demo>/flow.json <demo>/flow.html --quality showcase --json
 ```
 
-A render counts only when both commands exit 0 with all 9 checks passing and no errors or warnings. Delete the `flow.visual-check.*` files that `visual-check` writes; they don't belong in the repo.
+A render counts only when both commands exit 0 with all 9 checks passing and no errors or warnings. It also has to fit the page's 958×540 embed with no inner scrollbar, which validate doesn't check. In practice that means at most 3 dataflow rows or 3 workflow lanes, and a `meta.viewBox` no taller than the content needs. Check it in the app: open the page, expand *Explore the flow*, and the iframe document's `scrollHeight` must be exactly 540. Delete the `flow.visual-check.*` files that `visual-check` writes; they don't belong in the repo.
 
 Rolling this out to all 16 demos in one change was approved on 2026-09-26. It's the one sanctioned exception to "never refactored together" in rule 1.
 
