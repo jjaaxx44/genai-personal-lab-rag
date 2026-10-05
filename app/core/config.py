@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # TypeSafe Jev (optional) -- the relevance judge behind the rerank demo's Jev toggle.
+    typesafe_api_key: str = ""
+    # Pinned, not jev-latest: the alias moves on release and would shift the probabilities
+    # (and any threshold tuned against them) without a change on our side.
+    typesafe_model: str = "jev-1.13.0"
+    typesafe_timeout_s: float = 15.0
+
     # Demo-specific caps
     contextual_max_chunks: int = 60
     contextual_chunk_size: int = 800
@@ -66,6 +73,8 @@ class Settings(BaseSettings):
     rerank_chunk_overlap: int = 100
     rerank_candidate_k: int = 20
     rerank_top_k: int = 5
+    # Jev calls in flight at once; its limit is 80 requests/s, so this is nowhere near it.
+    rerank_jev_concurrency: int = 8
     eval_test_set_size: int = 10
     agentic_chunk_size: int = 800
     agentic_chunk_overlap: int = 100

@@ -5178,8 +5178,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="question" data-edge-to="similaritySearch" data-edge-label="question text" data-edge-key="3" data-edge-id="question-search" data-composition-points="156,271;630,271" d="M 156 271 L 630 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="store" data-edge-to="similaritySearch" data-edge-label="similarity_search_with_score" data-edge-key="4" data-edge-id="store-search" data-composition-points="745,186;745,242" d="M 745 186 L 745 242" class="a-dashed" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
         <path data-edge-from="similaritySearch" data-edge-to="crossEncoder" data-edge-label="candidate pool (candidate_k=20)" data-edge-key="5" data-edge-id="search-crossencoder" data-composition-points="745,300;745,356" d="M 745 300 L 745 356" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="question" data-edge-to="crossEncoder" data-edge-label="question + passage pairs" data-edge-key="6" data-edge-id="question-crossencoder" data-composition-points="156,271;400.5,271;400.5,385;645,385" d="M 156 271 L 400.5 271 L 400.5 385 L 645 385" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path data-edge-from="crossEncoder" data-edge-to="llm" data-edge-label="top_k=5, re-sorted" data-edge-key="7" data-edge-id="crossencoder-llm" data-composition-points="845,385;874.5,385;874.5,271;904,271" d="M 845 385 L 874.5 385 L 874.5 271 L 904 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="question" data-edge-to="crossEncoder" data-edge-label="question + passage pairs" data-edge-key="6" data-edge-id="question-crossencoder" data-composition-points="156,271;388,271;388,385;620,385" d="M 156 271 L 388 271 L 388 385 L 620 385" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path data-edge-from="crossEncoder" data-edge-to="llm" data-edge-label="top_k=5, re-sorted" data-edge-key="7" data-edge-id="crossencoder-llm" data-composition-points="870,385;887,385;887,271;904,271" d="M 870 385 L 887 385 L 887 271 L 904 271" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         <path data-edge-from="llm" data-edge-to="answer" data-edge-label="grounded reply" data-edge-key="8" data-edge-id="llm-answer" data-composition-points="960,242;960,186" d="M 960 242 L 960 186" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
 
         <!-- Nodes -->
@@ -5259,15 +5259,15 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text data-detail="context" x="745" y="279" class="t-muted" font-size="7" text-anchor="middle">similarity_search_with_score, candidate_k=20</text>
         </g>
 
-        <g id="node-crossEncoder" data-node-id="crossEncoder" data-node-label="Stage 2: cross-encoder" tabindex="0" role="button" aria-label="Focus Stage 2: cross-encoder, ms-marco-MiniLM-L-6-v2, local CPU, 04 / Retrieve + rerank" aria-pressed="false" data-node-kind="backend" data-node-sublabel="ms-marco-MiniLM-L-6-v2, local CPU" data-node-context="04 / Retrieve + rerank">
-          <title>Stage 2: cross-encoder · ms-marco-MiniLM-L-6-v2, local CPU · 04 / Retrieve + rerank</title>
-          <rect x="645" y="356" width="200" height="58" rx="6" class="c-mask"/>
-          <rect x="645" y="356" width="200" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(651 362) scale(0.6875)">
+        <g id="node-crossEncoder" data-node-id="crossEncoder" data-node-label="Stage 2: re-ranker (toggle)" tabindex="0" role="button" aria-label="Focus Stage 2: re-ranker (toggle), MiniLM cross-encoder, or Jev jev-1.13.0, 04 / Retrieve + rerank" aria-pressed="false" data-node-kind="backend" data-node-sublabel="MiniLM cross-encoder, or Jev jev-1.13.0" data-node-context="04 / Retrieve + rerank">
+          <title>Stage 2: re-ranker (toggle) · MiniLM cross-encoder, or Jev jev-1.13.0 · 04 / Retrieve + rerank</title>
+          <rect x="620" y="356" width="250" height="58" rx="6" class="c-mask"/>
+          <rect x="620" y="356" width="250" height="58" rx="6" class="c-backend" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(626 362) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text data-node-label="" data-detail-anchor="" x="745" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Stage 2: cross-encoder</text>
-          <text data-detail="context" x="745" y="393" class="t-muted" font-size="7" text-anchor="middle">ms-marco-MiniLM-L-6-v2, local CPU</text>
+          <text data-node-label="" data-detail-anchor="" x="745" y="377" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">Stage 2: re-ranker (toggle)</text>
+          <text data-detail="context" x="745" y="393" class="t-muted" font-size="7" text-anchor="middle">MiniLM cross-encoder, or Jev jev-1.13.0</text>
         </g>
 
         <g id="node-llm" data-node-id="llm" data-node-label="Chat model" tabindex="0" role="button" aria-label="Focus Chat model, LCEL chain, 05 / Generate" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="LCEL chain" data-node-context="05 / Generate">
@@ -5321,12 +5321,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <text x="745" y="338" class="t-backend" font-size="8" text-anchor="middle">candidate pool (candidate_k=20)</text>
         </g>
         <g data-detail="context" data-edge-from="question" data-edge-to="crossEncoder" data-edge-label="question + passage pairs" data-edge-key="6" data-edge-id="question-crossencoder">
-          <rect x="335.7" y="307" width="129.6" height="16" rx="4" class="c-mask"/>
-          <text x="400.5" y="318" class="t-backend" font-size="8" text-anchor="middle">question + passage pairs</text>
+          <rect x="323.2" y="307" width="129.6" height="16" rx="4" class="c-mask"/>
+          <text x="388" y="318" class="t-backend" font-size="8" text-anchor="middle">question + passage pairs</text>
         </g>
         <g data-detail="context" data-edge-from="crossEncoder" data-edge-to="llm" data-edge-label="top_k=5, re-sorted" data-edge-key="7" data-edge-id="crossencoder-llm">
-          <rect x="824.4" y="307" width="100.2" height="16" rx="4" class="c-mask"/>
-          <text x="874.5" y="318" class="t-backend" font-size="8" text-anchor="middle">top_k=5, re-sorted</text>
+          <rect x="836.9" y="307" width="100.2" height="16" rx="4" class="c-mask"/>
+          <text x="887" y="318" class="t-backend" font-size="8" text-anchor="middle">top_k=5, re-sorted</text>
         </g>
         <g data-detail="context" data-edge-from="llm" data-edge-to="answer" data-edge-label="grounded reply" data-edge-key="8" data-edge-id="llm-answer">
           <rect x="919.7" y="221" width="80.6" height="16" rx="4" class="c-mask"/>

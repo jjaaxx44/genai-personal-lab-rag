@@ -433,6 +433,7 @@ dependencies = [
     { name = "langchain-ollama" },
     { name = "langchain-openai" },
     { name = "langchain-text-splitters" },
+    { name = "langchain-typesafe" },
     { name = "langfuse" },
     { name = "langgraph" },
     { name = "neo4j" },
@@ -461,6 +462,7 @@ requires-dist = [
     { name = "langchain-ollama", specifier = "==1.1.0" },
     { name = "langchain-openai", specifier = "==1.6.2" },
     { name = "langchain-text-splitters", specifier = "==1.1.2" },
+    { name = "langchain-typesafe", specifier = "==0.0.1a3" },
     { name = "langfuse", specifier = "==4.15.4" },
     { name = "langgraph", specifier = "==1.2.11" },
     { name = "neo4j", specifier = "==6.3.1" },
@@ -1036,6 +1038,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/9f/6c545900fefb7b00ddfa3f16b80d61338a0ec68c31c5451eeeab99082760/langchain_text_splitters-1.1.2.tar.gz", hash = "sha256:782a723db0a4746ac91e251c7c1d57fd23636e4f38ed733074e28d7a86f41627", size = 293580, upload-time = "2026-04-16T14:20:39.162Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d3/26/1ef06f56198d631296d646a6223de35bcc6cf9795ceb2442816bc963b84c/langchain_text_splitters-1.1.2-py3-none-any.whl", hash = "sha256:a2de0d799ff31886429fd6e2e0032df275b60ec817c19059a7b46181cc1c2f10", size = 35903, upload-time = "2026-04-16T14:20:38.243Z" },
+]
+
+[[package]]
+name = "langchain-typesafe"
+version = "0.0.1a3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx2" },
+    { name = "langchain-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c9/54/460d126cb5db7b031e5b3b94c63fe36d58bce020f2692fd7661f8f84c7d3/langchain_typesafe-0.0.1a3.tar.gz", hash = "sha256:d77647a7a5bafaa82db8212a682b223a9bbcd52fb015e49464f211552f1f3272", size = 200970, upload-time = "2026-09-20T18:54:40.777Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/5b/a14f30242eb36363ee757024a01727fef5efffbb542d2382468f457a7e2b/langchain_typesafe-0.0.1a3-py3-none-any.whl", hash = "sha256:f06f74ebdcb10cbc836dd89a275bbf4e2e13646cb919dcc02d4219e602cfe36e", size = 24962, upload-time = "2026-09-20T18:54:39.797Z" },
 ]
 
 [[package]]

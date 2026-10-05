@@ -79,6 +79,7 @@ Each demo folder has a `README.md` covering the technique in general — how it 
 | Orchestration | LangChain v1 and LangGraph, except in Naive RAG, Hybrid search and Vectorless RAG, which are plain Python so the mechanics stay visible |
 | Web search | `ddgs` (no API key), used by CRAG's fallback |
 | Evaluation | Ragas |
+| Relevance judge | TypeSafe Jev (`jev-1.13.0`) via `langchain-typesafe` — optional, the Re-ranking demo's Jev toggle; needs `TYPESAFE_API_KEY` |
 | Tracing | Langfuse — optional, and silently disabled when keys are missing |
 
 Every direct dependency is pinned in [pyproject.toml](pyproject.toml), with a committed `uv.lock` for the transitive ones. Torch comes from the CPU-only index; the PyPI Linux wheels would pull in several GB of CUDA packages that this app has no use for.
@@ -95,7 +96,7 @@ Every direct dependency is pinned in [pyproject.toml](pyproject.toml), with a co
 
 2. Fill in at least one LLM provider key. Gemini and Groq both have usable free tiers, and the defaults in the template point at their cheapest models. Change `MONGODB_PASSWORD` from `change-me`, and make `MONGODB_URI` match it.
 
-   The graph demos (14, 15) also need a Neo4j AuraDB Free instance. The other fourteen run without one. Langfuse is optional everywhere.
+   The graph demos (14, 15) also need a Neo4j AuraDB Free instance. The other fourteen run without one. Langfuse is optional everywhere, and so is TypeSafe (only the Re-ranking demo's Jev toggle uses it).
 
    If you want the local fallback: `ollama pull qwen2.5:7b-instruct` on the host. It is about 4.7 GB resident, so on an 8 GB machine it competes with the app and the local embedding models.
 

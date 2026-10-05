@@ -97,11 +97,11 @@
     {
       "id": "crossEncoder",
       "type": "backend",
-      "label": "Stage 2: cross-encoder",
-      "sublabel": "ms-marco-MiniLM-L-6-v2, local CPU",
+      "label": "Stage 2: re-ranker (toggle)",
+      "sublabel": "MiniLM cross-encoder, or Jev jev-1.13.0",
       "stage": 3,
       "row": 2,
-      "width": 200
+      "width": 250
     },
     {
       "id": "llm",
